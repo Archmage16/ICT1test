@@ -46,20 +46,23 @@ class Olympiad(models.Model):
     subject = models.CharField("Предмет", max_length=100)
     description = models.TextField("Описание")
     organizer = models.CharField("Организатор", max_length=180)
-    format = models.CharField("Формат", max_length=10, choices=Format.choices)
+    format = models.CharField("Формат", max_length=10, choices=Format.choices, blank=True, default="")
     city = models.CharField("Город", max_length=120, blank=True)
     venue = models.CharField("Место проведения", max_length=255, blank=True)
-    starts_at = models.DateTimeField("Дата и время начала")
-    ends_at = models.DateTimeField("Дата и время окончания")
-    registration_deadline = models.DateTimeField("Дедлайн регистрации")
-    min_grade = models.PositiveSmallIntegerField("С класса", default=5)
-    max_grade = models.PositiveSmallIntegerField("По класс", default=11)
+    starts_at = models.DateTimeField("Дата и время начала", null=True, blank=True)
+    ends_at = models.DateTimeField("Дата и время окончания", null=True, blank=True)
+    registration_deadline = models.DateTimeField("Дедлайн регистрации", null=True, blank=True)
+    min_grade = models.PositiveSmallIntegerField("С класса", null=True, blank=True, default=5)
+    max_grade = models.PositiveSmallIntegerField("По класс", null=True, blank=True, default=11)
     capacity = models.PositiveIntegerField("Количество мест (0 — без ограничений)", default=0)
     level = models.CharField("Уровень", max_length=24, default="national", choices=[
         ("school", "Школьный"), ("district", "Районный"), ("city", "Городской"),
         ("regional", "Областной"), ("national", "Республиканский"), ("international", "Международный"),
     ])
     rules_url = models.URLField("Ссылка на положение", blank=True)
+    source_key = models.CharField("Ключ записи источника", max_length=80, unique=True, null=True, blank=True)
+    source_url = models.URLField("Источник", blank=True)
+    source_synced_at = models.DateTimeField("Синхронизировано", null=True, blank=True)
     is_published = models.BooleanField("Опубликовано", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -73,6 +76,8 @@ class Olympiad(models.Model):
 
     def clean(self):
         errors = {}
+        if self.is_published and not (self.starts_at and self.registration_deadline and self.format):
+            errors["starts_at"] = "Для публикации укажите дату олимпиады, дедлайн регистрации и формат."
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             errors["ends_at"] = "Дата окончания должна быть позже даты начала."
         if self.registration_deadline and self.starts_at and self.registration_deadline > self.starts_at:
@@ -98,7 +103,7 @@ class Olympiad(models.Model):
     @property
     def registration_open(self):
         from django.utils import timezone
-        return self.registration_deadline >= timezone.now() and self.starts_at >= timezone.now() and self.places_left != 0
+        return bool(self.registration_deadline and self.starts_at and self.registration_deadline >= timezone.now() and self.starts_at >= timezone.now() and self.places_left != 0)
 
 
 class Registration(models.Model):

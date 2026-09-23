@@ -14,17 +14,18 @@
 <section class="section container detail-layout">
   <article class="content-card"><h2>Об олимпиаде</h2><p>{{ olympiad.description|linebreaks }}</p>
     {% if olympiad.rules_url %}<p><a class="btn btn-ghost" href="{{ olympiad.rules_url }}" target="_blank" rel="noopener">Официальное положение ↗</a></p>{% endif %}
+    {% if olympiad.source_url %}<p class="source-note">Источник объявления: <a href="{{ olympiad.source_url }}" target="_blank" rel="noopener">РНПЦ «Дарын» ↗</a></p>{% endif %}
     {% if results %}<h2>Ваш опубликованный результат</h2><div class="result-highlight"><strong>{{ results.0.score }} / {{ results.0.max_score }}</strong><span>Место: {{ results.0.place|default:'—' }} · {{ results.0.diploma|default:'Участие' }}</span></div>
     {% elif registration %}<h2>Результат</h2><p class="muted">Организатор ещё не опубликовал ваш результат.</p>
     {% endif %}
   </article>
   <aside class="info-card"><h3>Ключевая информация</h3><dl>
-    <dt>Дата и время</dt><dd>{{ olympiad.starts_at|date:'d.m.Y, H:i' }}</dd>
-    <dt>Регистрация до</dt><dd>{{ olympiad.registration_deadline|date:'d.m.Y, H:i' }}</dd>
-    <dt>Формат</dt><dd>{{ olympiad.get_format_display }}</dd>
+    <dt>Дата и время</dt><dd>{% if olympiad.starts_at %}{{ olympiad.starts_at|date:'d.m.Y, H:i' }}{% else %}Уточняется{% endif %}</dd>
+    <dt>Регистрация до</dt><dd>{% if olympiad.registration_deadline %}{{ olympiad.registration_deadline|date:'d.m.Y, H:i' }}{% else %}Уточняется{% endif %}</dd>
+    <dt>Формат</dt><dd>{{ olympiad.get_format_display|default:'Уточняется' }}</dd>
     <dt>Уровень</dt><dd>{{ olympiad.get_level_display }}</dd>
     <dt>Место</dt><dd>{{ olympiad.city|default:'Онлайн' }}{% if olympiad.venue %}, {{ olympiad.venue }}{% endif %}</dd>
-    <dt>Классы</dt><dd>{{ olympiad.min_grade }}–{{ olympiad.max_grade }}</dd>
+    <dt>Классы</dt><dd>{% if olympiad.min_grade and olympiad.max_grade %}{{ olympiad.min_grade }}–{{ olympiad.max_grade }}{% else %}Уточняются{% endif %}</dd>
     <dt>Свободные места</dt><dd>{% if olympiad.places_left is None %}Без ограничений{% else %}{{ olympiad.places_left }}{% endif %}</dd>
   </dl></aside>
 </section>

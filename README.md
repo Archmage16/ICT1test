@@ -10,6 +10,7 @@ OlympIQ is a responsive Django platform for school olympiads in Kazakhstan. It b
 - Teacher accounts managed by an administrator; teachers can select multiple students from their own school for registration.
 - Staff-only admin console for schools, users, olympiads, registrations, news, and result publication; CSV export for registrations.
 - Optional Telegram connection, `/my` and `/deadlines` commands, and messages after registration/result publication.
+- Import of current olympiad announcements from the public Daryn.kz WordPress REST API. Imported records are private drafts until an administrator verifies the event dates, deadline, and format.
 - SQLite for local use; configurable PostgreSQL for deployment. Environment-based secrets and production security settings.
 
 ## Local setup
@@ -33,6 +34,14 @@ For sample data in local development only:
 ```powershell
 python manage.py seed_demo
 ```
+
+To sync recent official announcements from the Daryn.kz API into the local database:
+
+```powershell
+python manage.py import_daryn_olympiads
+```
+
+The command reads `https://daryn.kz/wp-json/wp/v2/posts`, upserts by the source post ID, and keeps imported records unpublished for review. Use `--days 30` or `--max-pages 1` to narrow the sync. The API publishes news as well as event information, so review each source page and fill in confirmed dates, eligibility, and registration details in `/admin/` before publishing. This importer does not access participant accounts or registration data.
 
 The demo command creates `admin`, `teacher`, and `student` accounts with a shared sample password. Never run it on a public deployment.
 
