@@ -25,23 +25,53 @@ class Command(BaseCommand):
 
         now = timezone.now()
         demos = [
-            ("Республиканская олимпиада по информатике", "Информатика", 12, "Астана", "Офлайн"),
-            ("Жас математик 2026", "Математика", 20, "Алматы", "Гибрид"),
-            ("English Challenge", "Английский язык", 28, "Онлайн", "Онлайн"),
+            ("Республиканская олимпиада по информатике", "Информатика", 12, "Астана", "offline", "national", "olympiad", 7, 11),
+            ("Жас математик 2026", "Математика", 14, "Алматы", "hybrid", "regional", "olympiad", 5, 8),
+            ("English Challenge", "Английский язык", 16, "", "online", "international", "olympiad", 7, 11),
+            ("Открытая олимпиада по физике", "Физика", 18, "Караганда", "offline", "city", "olympiad", 8, 11),
+            ("Турнир юных химиков", "Химия", 19, "Шымкент", "hybrid", "regional", "olympiad", 8, 11),
+            ("Биология: исследовательский этап", "Биология", 20, "", "online", "national", "olympiad", 7, 11),
+            ("Олимпиада по географии Казахстана", "География", 21, "Астана", "offline", "national", "olympiad", 6, 10),
+            ("Юный историк", "История", 22, "Кызылорда", "hybrid", "regional", "olympiad", 7, 10),
+            ("Лингвистический марафон", "Лингвистика", 23, "", "online", "international", "olympiad", 8, 11),
+            ("Олимпиада по казахскому языку", "Казахский язык", 24, "Тараз", "offline", "national", "olympiad", 5, 9),
+            ("Младшая олимпиада по математике", "Математика", 25, "", "online", "school", "olympiad", 3, 6),
+            ("Алгоритмический старт", "Информатика", 26, "Алматы", "hybrid", "city", "olympiad", 6, 9),
+            ("Олимпиада по астрономии", "Астрономия", 27, "Астана", "offline", "national", "olympiad", 8, 11),
+            ("Экология и устойчивое развитие", "Экология", 28, "", "online", "international", "olympiad", 7, 11),
+            ("Олимпиада по финансовой грамотности", "Финансовая грамотность", 29, "Павлодар", "hybrid", "regional", "olympiad", 7, 11),
+            ("Кибербезопасность для школьников", "Информатика", 30, "", "online", "national", "olympiad", 8, 11),
+            ("Инженерная олимпиада", "Инженерия", 31, "Актобе", "offline", "regional", "olympiad", 7, 11),
+            ("Олимпиада по естествознанию", "Естествознание", 32, "Костанай", "hybrid", "district", "olympiad", 5, 7),
+            ("Открытая олимпиада по английскому языку", "Английский язык", 33, "", "online", "international", "olympiad", 5, 11),
+            ("Дебаты: школьная лига", "Дебаты", 34, "Астана", "offline", "national", "olympiad", 8, 11),
+            ("Green City: школьный хакатон", "Экология и технологии", 35, "Алматы", "hybrid", "city", "hackathon", 8, 11),
+            ("EdTech Weekend", "Образовательные технологии", 36, "", "online", "international", "hackathon", 9, 11),
+            ("Конкурс научных проектов", "Научный проект", 37, "Караганда", "offline", "regional", "contest", 7, 11),
+            ("Робототехнический хакатон", "Робототехника", 38, "Астана", "hybrid", "national", "hackathon", 6, 11),
         ]
-        for title, subject, days, city, fmt in demos:
-            Olympiad.objects.get_or_create(title=title, defaults={
+        for index, (title, subject, days, city, fmt, level, event_type, min_grade, max_grade) in enumerate(demos, start=1):
+            starts_at = now + timedelta(days=days)
+            Olympiad.objects.update_or_create(title=title, defaults={
+                "event_type": event_type,
                 "subject": subject,
-                "description": "Проверьте знания, получите опыт и шанс представить школу на следующем этапе. Подробный регламент доступен участникам после регистрации.",
-                "organizer": "Республиканский научно-практический центр «Дарын»",
-                "format": {"Онлайн": "online", "Офлайн": "offline", "Гибрид": "hybrid"}[fmt],
-                "city": city if city != "Онлайн" else "",
-                "venue": "Будет указано в личном кабинете",
-                "starts_at": now + timedelta(days=days),
-                "ends_at": now + timedelta(days=days, hours=3),
-                "registration_deadline": now + timedelta(days=days - 4),
-                "min_grade": 7,
-                "max_grade": 11,
+                "description": "Демонстрационный пример для проверки каталога и процесса регистрации OlympIQ. Это тестовое событие; даты и условия не являются официальным объявлением организатора.",
+                "organizer": "Демонстрационный каталог OlympIQ",
+                "format": fmt,
+                "city": city,
+                "venue": "Адрес уточняется в примере",
+                "starts_at": starts_at,
+                "ends_at": starts_at + timedelta(hours=3),
+                "registration_deadline": starts_at - timedelta(days=2),
+                "min_grade": min_grade,
+                "max_grade": max_grade,
+                "level": level,
+                "is_published": True,
+                "is_demo": True,
+                "source_key": f"demo:{index}",
+                "source_url": "",
+                "registration_url": "",
             })
         News.objects.get_or_create(title="Открыта регистрация на осенний сезон", defaults={"text": "В каталоге доступны новые олимпиады по информатике, математике и английскому языку."})
-        self.stdout.write(self.style.SUCCESS("Демо-данные созданы. Логины: admin / teacher / student, пароль: Demo12345!"))
+        open_demo_count = Olympiad.objects.filter(is_demo=True, is_published=True, registration_deadline__gte=now, starts_at__gte=now).count()
+        self.stdout.write(self.style.SUCCESS(f"Демо-данные созданы: {open_demo_count} открытых примеров событий. Логины: admin / teacher / student, пароль: Demo12345!"))

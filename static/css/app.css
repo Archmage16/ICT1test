@@ -21,4 +21,5 @@ body{color:var(--ink);background:#faf7f0;background-image:radial-gradient(#d9cbb
 .how{background:#3a4035;color:#f9f2e8}.how .eyebrow,.steps b{color:#e6ad77}.steps>div{border-color:#ffffff31}.steps p,footer p,footer span{color:#d0c8bb}footer{background:#292a25}.brand.light span{background:#b8543b!important;color:#fff!important}.telegram-card{background:linear-gradient(115deg,#f4e9dc,#fffdf9);border-color:#e1d3c3;border-radius:8px}.telegram-card code{color:#9d4934}.pill.success,.pill.approved{background:#e9efe5;color:#526544}.pill.pending{background:#f9eed7;color:#9b6b20}
 ::selection{background:#ddb198;color:#302b25}
 .source-note{padding:13px 15px;border-left:3px solid #b8543b;background:#f7eee3;color:#74685b;font-size:13px}.source-note a{color:#9d4934;font-weight:700}
+.demo-badge{margin:6px 0;background:#fff2d9;color:#8a5d1a}
 @media(max-width:850px){.hero:after{width:116px;height:116px;right:14px;top:25px;opacity:.65;box-shadow:0 0 0 13px #b84d3710,0 0 0 29px #b84d3709}.hero-grid{gap:18px}.nav-links a{border-color:#e5d8c8;background:#fffaf2}}

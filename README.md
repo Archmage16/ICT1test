@@ -11,6 +11,8 @@ OlympIQ is a responsive Django platform for school olympiads in Kazakhstan. It b
 - Staff-only admin console for schools, users, olympiads, registrations, news, and result publication; CSV export for registrations.
 - Optional Telegram connection, `/my` and `/deadlines` commands, and messages after registration/result publication.
 - Import of current olympiad announcements from the public Daryn.kz WordPress REST API. Imported records are private drafts until an administrator verifies the event dates, deadline, and format.
+- Import of current, human-verified Hackalendar events (including hackathons) as private drafts with the original organizer and registration links.
+- Read-only public JSON feed at `/api/v1/events/` with `type`, `q`, and `open=1` filters.
 - SQLite for local use; configurable PostgreSQL for deployment. Environment-based secrets and production security settings.
 
 ## Local setup
@@ -29,7 +31,7 @@ python manage.py runserver
 
 Open http://127.0.0.1:8000/. The public catalogue and calendar work without an account. Students can self-register. Create teacher accounts through `/admin/` and assign them to a school; public signup intentionally cannot grant teacher or administrator privileges.
 
-For sample data in local development only:
+For local development, the seed command creates 24 upcoming open sample events: 20 olympiad examples and 4 hackathons/contests. These entries are clearly marked as demonstrations and are not real event listings:
 
 ```powershell
 python manage.py seed_demo
@@ -42,6 +44,16 @@ python manage.py import_daryn_olympiads
 ```
 
 The command reads `https://daryn.kz/wp-json/wp/v2/posts`, upserts by the source post ID, and keeps imported records unpublished for review. Use `--days 30` or `--max-pages 1` to narrow the sync. The API publishes news as well as event information, so review each source page and fill in confirmed dates, eligibility, and registration details in `/admin/` before publishing. This importer does not access participant accounts or registration data.
+
+To import upcoming events from Hackalendar:
+
+```powershell
+python manage.py import_hackalendar_events
+```
+
+This uses the free public `https://hackalendar.com/api/events` feed and imports events as drafts. The source covers hackathons and related technology events, not school olympiads. Confirm eligibility, the live registration deadline, and organizer page before publishing. Refreshing the feed preserves moderator-entered grade eligibility and any deadline already reviewed in the admin panel.
+
+The public JSON endpoint returns only published events. For example, `/api/v1/events/?type=olympiad&open=1` lists published olympiads whose registration is open. External registrations always link to the event organizer; OlympIQ does not claim to register participants on their behalf.
 
 The demo command creates `admin`, `teacher`, and `student` accounts with a shared sample password. Never run it on a public deployment.
 

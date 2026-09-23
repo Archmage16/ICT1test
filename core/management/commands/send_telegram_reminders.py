@@ -27,7 +27,7 @@ class Command(BaseCommand):
                 student__telegram_link__chat_id__isnull=False,
                 olympiad__is_published=True,
                 **{f"{date_field}__gte": start, f"{date_field}__lte": end},
-            ).select_related("student", "olympiad").exclude(telegram_reminders__kind=kind)
+            ).exclude(status=Registration.Status.REJECTED).select_related("student", "olympiad").exclude(telegram_reminders__kind=kind)
             for registration in candidates.iterator():
                 if kind == TelegramReminder.Kind.DEADLINE:
                     text = f"Напоминание OlympIQ: регистрация на «{registration.olympiad.title}» закрывается завтра, {timezone.localtime(registration.olympiad.registration_deadline).strftime('%d.%m в %H:%M')}."

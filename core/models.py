@@ -42,7 +42,15 @@ class Olympiad(models.Model):
         OFFLINE = "offline", "Офлайн"
         HYBRID = "hybrid", "Гибрид"
 
+    class EventType(models.TextChoices):
+        OLYMPIAD = "olympiad", "Олимпиада"
+        HACKATHON = "hackathon", "Хакатон"
+        CONTEST = "contest", "Конкурс"
+        QUIZ = "quiz", "Викторина"
+        OTHER = "other", "Другое"
+
     title = models.CharField("Название", max_length=240)
+    event_type = models.CharField("Тип события", max_length=12, choices=EventType.choices, default=EventType.OLYMPIAD)
     subject = models.CharField("Предмет", max_length=100)
     description = models.TextField("Описание")
     organizer = models.CharField("Организатор", max_length=180)
@@ -55,14 +63,16 @@ class Olympiad(models.Model):
     min_grade = models.PositiveSmallIntegerField("С класса", null=True, blank=True, default=5)
     max_grade = models.PositiveSmallIntegerField("По класс", null=True, blank=True, default=11)
     capacity = models.PositiveIntegerField("Количество мест (0 — без ограничений)", default=0)
-    level = models.CharField("Уровень", max_length=24, default="national", choices=[
+    level = models.CharField("Уровень", max_length=24, default="", blank=True, choices=[
         ("school", "Школьный"), ("district", "Районный"), ("city", "Городской"),
         ("regional", "Областной"), ("national", "Республиканский"), ("international", "Международный"),
     ])
     rules_url = models.URLField("Ссылка на положение", blank=True)
     source_key = models.CharField("Ключ записи источника", max_length=80, unique=True, null=True, blank=True)
     source_url = models.URLField("Источник", blank=True)
+    registration_url = models.URLField("Ссылка для регистрации у организатора", blank=True)
     source_synced_at = models.DateTimeField("Синхронизировано", null=True, blank=True)
+    is_demo = models.BooleanField("Демонстрационная запись", default=False)
     is_published = models.BooleanField("Опубликовано", default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -76,8 +86,18 @@ class Olympiad(models.Model):
 
     def clean(self):
         errors = {}
-        if self.is_published and not (self.starts_at and self.registration_deadline and self.format):
-            errors["starts_at"] = "Для публикации укажите дату олимпиады, дедлайн регистрации и формат."
+        if self.is_published:
+            required_for_publication = {
+                "starts_at": self.starts_at,
+                "registration_deadline": self.registration_deadline,
+                "format": self.format,
+                "level": self.level,
+                "min_grade": self.min_grade,
+                "max_grade": self.max_grade,
+            }
+            for field, value in required_for_publication.items():
+                if not value:
+                    errors[field] = "Заполните это поле перед публикацией."
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
             errors["ends_at"] = "Дата окончания должна быть позже даты начала."
         if self.registration_deadline and self.starts_at and self.registration_deadline > self.starts_at:
@@ -103,7 +123,17 @@ class Olympiad(models.Model):
     @property
     def registration_open(self):
         from django.utils import timezone
-        return bool(self.registration_deadline and self.starts_at and self.registration_deadline >= timezone.now() and self.starts_at >= timezone.now() and self.places_left != 0)
+        return bool(
+            self.is_published
+            and self.registration_deadline
+            and self.starts_at
+            and self.min_grade is not None
+            and self.max_grade is not None
+            and self.level
+            and self.registration_deadline >= timezone.now()
+            and self.starts_at >= timezone.now()
+            and self.places_left != 0
+        )
 
 
 class Registration(models.Model):

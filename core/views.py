@@ -8,6 +8,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse, JsonResponse
+from django.views.decorators.cache import cache_control
 from django.views.decorators.csrf import csrf_exempt
 from django.db import IntegrityError, transaction
 from django.db.models import Count, Q
@@ -16,6 +17,13 @@ from django.utils import timezone
 from .forms import ProfileForm, SignUpForm, TeacherRegistrationForm
 from .models import News, Olympiad, Registration, Result, TelegramLink, User
 from .telegram import send_message, send_to_user, user_summary
+
+
+def csv_safe(value):
+    text = str(value or "")
+    if text.lstrip("\t\r\n ").startswith(("=", "+", "-", "@")):
+        return "'" + text
+    return text
 
 
 def home(request):
@@ -56,6 +64,7 @@ def olympiad_list(request):
     q = request.GET.get("q", "").strip()
     subject = request.GET.get("subject", "")
     olympiad_format = request.GET.get("format", "")
+    event_type = request.GET.get("type", "")
     grade_value = request.GET.get("grade", "")
     open_only = request.GET.get("open", "") == "1"
     if q:
@@ -64,6 +73,8 @@ def olympiad_list(request):
         qs = qs.filter(subject=subject)
     if olympiad_format in Olympiad.Format.values:
         qs = qs.filter(format=olympiad_format)
+    if event_type in Olympiad.EventType.values:
+        qs = qs.filter(event_type=event_type)
     try:
         grade = int(grade_value)
     except (TypeError, ValueError):
@@ -81,8 +92,45 @@ def olympiad_list(request):
         "q": q,
         "selected_subject": subject,
         "selected_format": olympiad_format,
+        "selected_event_type": event_type,
         "selected_grade": grade_value,
         "open_only": open_only,
+    })
+
+
+@cache_control(public=True, max_age=300)
+def events_api(request):
+    qs = Olympiad.objects.filter(is_published=True)
+    query = request.GET.get("q", "").strip()
+    event_type = request.GET.get("type", "")
+    if query:
+        qs = qs.filter(Q(title__icontains=query) | Q(subject__icontains=query) | Q(organizer__icontains=query))
+    if event_type in Olympiad.EventType.values:
+        qs = qs.filter(event_type=event_type)
+    if request.GET.get("open") == "1":
+        qs = [item for item in qs if item.registration_open]
+    return JsonResponse({
+        "count": len(qs) if isinstance(qs, list) else qs.count(),
+        "events": [{
+            "id": item.pk,
+            "title": item.title,
+            "type": item.event_type,
+            "subject": item.subject,
+            "description": item.description,
+            "organizer": item.organizer,
+            "format": item.format,
+            "city": item.city,
+            "starts_at": item.starts_at.isoformat() if item.starts_at else None,
+            "ends_at": item.ends_at.isoformat() if item.ends_at else None,
+            "registration_deadline": item.registration_deadline.isoformat() if item.registration_deadline else None,
+            "min_grade": item.min_grade,
+            "max_grade": item.max_grade,
+            "level": item.level,
+            "registration_open": item.registration_open,
+            "registration_url": item.registration_url or None,
+            "source_url": item.source_url or None,
+            "is_demo": item.is_demo,
+        } for item in qs[:200]],
     })
 
 
@@ -123,7 +171,9 @@ def register_self(request, pk):
     if request.method != "POST":
         return redirect("olympiad_detail", pk=pk)
     olympiad = get_object_or_404(Olympiad, pk=pk, is_published=True)
-    if request.user.role != User.Role.STUDENT:
+    if olympiad.registration_url:
+        messages.info(request, "Заявка подаётся на официальной странице события.")
+    elif request.user.role != User.Role.STUDENT:
         messages.error(request, "Самостоятельная регистрация доступна только ученикам.")
     elif not olympiad.registration_open:
         messages.error(request, "Регистрация закрыта или свободные места закончились.")
@@ -137,6 +187,8 @@ def register_self(request, pk):
                 locked = Olympiad.objects.select_for_update().get(pk=olympiad.pk)
                 if not locked.registration_open:
                     raise ValueError("Регистрация закрыта или свободные места закончились.")
+                if not (locked.min_grade <= request.user.grade <= locked.max_grade):
+                    raise ValueError("Класс больше не соответствует возрастной категории события.")
                 _, created = Registration.objects.get_or_create(olympiad=locked, student=request.user, defaults={"registered_by": request.user})
             messages.success(request, "Заявка отправлена." if created else "Вы уже зарегистрированы.")
             if created:
@@ -201,9 +253,17 @@ def telegram_webhook(request):
         update = json.loads(request.body or b"{}")
     except (json.JSONDecodeError, UnicodeDecodeError):
         return JsonResponse({"ok": False}, status=400)
+    if not isinstance(update, dict):
+        return JsonResponse({"ok": False}, status=400)
     message = update.get("message", {})
-    chat_id = message.get("chat", {}).get("id")
-    text = (message.get("text") or "").strip()
+    if not isinstance(message, dict):
+        return JsonResponse({"ok": True})
+    chat = message.get("chat")
+    if not isinstance(chat, dict):
+        return JsonResponse({"ok": True})
+    chat_id = chat.get("id")
+    raw_text = message.get("text")
+    text = raw_text.strip() if isinstance(raw_text, str) else ""
     if not chat_id or not text:
         return JsonResponse({"ok": True})
     command, _, argument = text.partition(" ")
@@ -244,6 +304,9 @@ def teacher_register(request, pk):
         messages.error(request, "Ваш аккаунт учителя не привязан к школе.")
         return redirect("dashboard")
     olympiad = get_object_or_404(Olympiad, pk=pk, is_published=True)
+    if olympiad.registration_url:
+        messages.info(request, "Заявка на это событие подаётся на официальной странице организатора.")
+        return redirect(olympiad)
     if not olympiad.registration_open:
         messages.error(request, "Регистрация закрыта или свободные места закончились.")
         return redirect(olympiad)
@@ -261,6 +324,12 @@ def teacher_register(request, pk):
                 new_students = []
                 with transaction.atomic():
                     locked = Olympiad.objects.select_for_update().get(pk=olympiad.pk)
+                    if not locked.registration_open:
+                        form.add_error(None, "Регистрация закрылась или свободные места закончились.")
+                        return render(request, "core/teacher_register.html", {"form": form, "olympiad": olympiad})
+                    if any(not (locked.min_grade <= student.grade <= locked.max_grade) for student in eligible):
+                        form.add_error("students", "Возрастные условия события изменились. Обновите форму и выберите подходящих учеников.")
+                        return render(request, "core/teacher_register.html", {"form": form, "olympiad": olympiad})
                     for student in eligible:
                         if not locked.registration_open:
                             break
@@ -286,5 +355,5 @@ def export_registrations(request):
     writer = csv.writer(response)
     writer.writerow(["Олимпиада", "ФИО", "Школа", "Класс", "Статус", "Дата заявки"])
     for item in Registration.objects.select_related("student__school", "olympiad"):
-        writer.writerow([item.olympiad.title, item.student.full_name, item.student.school or "", item.student.grade or "", item.get_status_display(), item.created_at.strftime("%d.%m.%Y %H:%M")])
+        writer.writerow([csv_safe(item.olympiad.title), csv_safe(item.student.full_name), csv_safe(item.student.school or ""), csv_safe(item.student.grade or ""), csv_safe(item.get_status_display()), item.created_at.strftime("%d.%m.%Y %H:%M")])
     return response

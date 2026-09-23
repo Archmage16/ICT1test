@@ -14,8 +14,8 @@ class CustomUserAdmin(UserAdmin):
 
 @admin.register(Olympiad)
 class OlympiadAdmin(admin.ModelAdmin):
-    list_display = ("title", "subject", "level", "starts_at", "registration_deadline", "is_published", "source_synced_at")
-    list_filter = ("subject", "format", "level", "is_published")
+    list_display = ("title", "event_type", "subject", "level", "starts_at", "registration_deadline", "is_published", "is_demo")
+    list_filter = ("event_type", "subject", "format", "level", "is_published", "is_demo")
     search_fields = ("title", "organizer", "city")
     readonly_fields = ("source_key", "source_synced_at")
 
