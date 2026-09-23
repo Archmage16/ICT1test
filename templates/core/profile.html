@@ -1,0 +1,6 @@
+{% extends 'base.html' %}
+{% block title %}Профиль — OlimpIQ{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="container"><span class="eyebrow">Личные данные</span><h1>Профиль</h1><p>Поддерживайте школьные данные и контакты в актуальном состоянии.</p></div></section>
+<section class="auth-section"><div class="form-card wide"><form method="post">{% csrf_token %}{{ form.as_p }}<button class="btn btn-primary full">Сохранить профиль</button></form></div></section>
+{% endblock %}

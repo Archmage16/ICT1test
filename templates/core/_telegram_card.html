@@ -1,0 +1,12 @@
+{% if user.is_authenticated and telegram_link %}
+<section class="container telegram-section">
+  <div class="telegram-card">
+    <div><span class="eyebrow">Напоминания</span><h2>Telegram для OlympIQ</h2>
+      {% if telegram_link.chat_id %}<p>Бот подключён. Команды: <code>/my</code> — ваши олимпиады, <code>/deadlines</code> — дедлайны.</p>
+      {% else %}<p>Получайте подтверждения заявок и проверяйте расписание прямо в Telegram. Подключение добровольное.</p>{% endif %}
+    </div>
+    {% if telegram_link.chat_id %}<span class="pill success">Подключён</span>
+    {% else %}<form method="post" action="{% url 'telegram_connect' %}">{% csrf_token %}<button class="btn btn-primary">Подключить Telegram</button></form>{% endif %}
+  </div>
+</section>
+{% endif %}

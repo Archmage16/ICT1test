@@ -1,0 +1,35 @@
+{% load static %}
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}OlimpIQ{% endblock %}</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+</head>
+<body>
+  <nav class="nav container">
+    <a class="brand" href="{% url 'home' %}"><span>O</span> OlimpIQ</a>
+    <div class="nav-links">
+      <a href="{% url 'olympiad_list' %}">Олимпиады</a>
+      <a href="{% url 'calendar' %}">Календарь</a>
+      {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Личный кабинет</a><a href="{% url 'profile' %}">Профиль</a>{% endif %}
+    </div>
+    <div class="nav-actions">
+      {% if user.is_authenticated %}
+        <span class="muted hide-mobile">{{ user.full_name }}</span>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost">Выйти</button></form>
+      {% else %}
+        <a class="btn btn-ghost" href="{% url 'login' %}">Войти</a>
+        <a class="btn btn-primary" href="{% url 'signup' %}">Регистрация</a>
+      {% endif %}
+    </div>
+  </nav>
+  {% if messages %}<div class="container messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  <main>{% block content %}{% endblock %}{% include 'core/_telegram_card.html' %}</main>
+  <footer><div class="container footer-grid"><div><div class="brand light"><span>O</span> OlimpIQ</div><p>Единое пространство школьных олимпиад Казахстана.</p></div><div><b>Платформа</b><a href="{% url 'olympiad_list' %}">Каталог олимпиад</a><a href="{% url 'dashboard' %}">Личный кабинет</a></div><div><b>Поддержка</b><a href="mailto:support@olimpiq.kz">support@olimpiq.kz</a><span>Астана, Казахстан</span></div></div></footer>
+</body>
+</html>

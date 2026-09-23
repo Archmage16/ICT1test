@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block title %}Календарь олимпиад — OlimpIQ{% endblock %}
+{% block content %}
+<section class="page-hero"><div class="container"><span class="eyebrow">Расписание</span><h1>Календарь олимпиад</h1><p>Даты проведения и сроки регистрации собраны в одном месте.</p></div></section>
+<section class="section container calendar-layout">
+  {% if user.is_authenticated and user.role == 'student' %}
+  <div class="calendar-panel"><div class="section-head"><div><span class="eyebrow">Ваш план</span><h2>Мои олимпиады</h2></div></div>
+    <div class="agenda-list">{% for registration in my_registrations %}{% with item=registration.olympiad %}<article class="agenda-item"><div class="agenda-date"><b>{{ item.starts_at|date:'d' }}</b><span>{{ item.starts_at|date:'M' }}</span></div><div class="agenda-content"><span class="tag">{{ item.subject }}</span><h3><a href="{{ item.get_absolute_url }}">{{ item.title }}</a></h3><p>{{ item.starts_at|date:'d.m.Y, H:i' }} · {{ item.city|default:item.get_format_display }}</p><small>Регистрация до {{ item.registration_deadline|date:'d.m.Y, H:i' }}</small></div><span class="pill {{ registration.status }}">{{ registration.get_status_display }}</span></article>{% endwith %}{% empty %}<div class="empty">Пока нет предстоящих заявок. <a href="{% url 'olympiad_list' %}">Найти олимпиаду →</a></div>{% endfor %}</div>
+  </div>
+  {% endif %}
+  <div class="calendar-panel"><div class="section-head"><div><span class="eyebrow">Открытые события</span><h2>Предстоящие олимпиады</h2></div><a href="{% url 'olympiad_list' %}">Открыть каталог →</a></div>
+    <div class="agenda-list">{% for item in upcoming %}<article class="agenda-item"><div class="agenda-date"><b>{{ item.starts_at|date:'d' }}</b><span>{{ item.starts_at|date:'M' }}</span></div><div class="agenda-content"><span class="tag">{{ item.subject }}</span><h3><a href="{{ item.get_absolute_url }}">{{ item.title }}</a></h3><p>{{ item.starts_at|date:'d.m.Y, H:i' }} · {{ item.city|default:item.get_format_display }}</p><small>Дедлайн регистрации: {{ item.registration_deadline|date:'d.m.Y, H:i' }}</small></div><a class="btn btn-ghost" href="{{ item.get_absolute_url }}">Подробнее</a></article>{% empty %}<div class="empty">Пока нет опубликованных предстоящих олимпиад.</div>{% endfor %}</div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,2 @@
+{% extends 'base.html' %}{% block title %}Вход — OlimpIQ{% endblock %}{% block content %}<section class="auth-section"><div class="form-card"><span class="eyebrow">С возвращением</span><h1>Войти в OlimpIQ</h1><form method="post">{% csrf_token %}{{ form.as_p }}{% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}<button class="btn btn-primary full">Войти</button></form><p class="form-note">Нет аккаунта? <a href="{% url 'signup' %}">Зарегистрироваться</a></p></div></section>{% endblock %}
+
