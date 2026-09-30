@@ -1,0 +1,9 @@
+{% load ux %}
+<div id="quick-start" class="quick-start">
+  <div class="section-head"><h2>{% tr 'Как подать заявку' %}</h2><span class="muted">{% tr 'Три простых шага' %}</span></div>
+  <ol class="quick-steps">
+    <li><strong><a href="{% url 'profile' %}">{% tr 'Заполните профиль' %}</a></strong><p>{% tr 'Создайте аккаунт, выберите школу и укажите свой класс.' %}</p></li>
+    <li><strong><a href="{% url 'olympiad_list' %}">{% tr 'Выберите олимпиаду' %}</a></strong><p>{% tr 'Укажите предмет и класс в фильтрах. Откройте «Подробнее» и проверьте условия.' %}</p></li>
+    <li><strong>{% tr 'Нажмите «Подать заявку»' %}</strong><p>{% tr 'Отправка сохраняет заявку сразу. Подтверждение организатора появится отдельно в личном кабинете.' %}</p></li>
+  </ol>
+</div>

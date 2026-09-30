@@ -95,6 +95,9 @@ def olympiad_list(request):
         "selected_event_type": event_type,
         "selected_grade": grade_value,
         "open_only": open_only,
+        "event_types": Olympiad.EventType.choices,
+        "formats": Olympiad.Format.choices,
+        "grades": range(1, 12),
     })
 
 
@@ -190,7 +193,7 @@ def register_self(request, pk):
                 if not (locked.min_grade <= request.user.grade <= locked.max_grade):
                     raise ValueError("Класс больше не соответствует возрастной категории события.")
                 _, created = Registration.objects.get_or_create(olympiad=locked, student=request.user, defaults={"registered_by": request.user})
-            messages.success(request, "Заявка отправлена." if created else "Вы уже зарегистрированы.")
+            messages.success(request, "Заявка сохранена. Статус: «На проверке». Подтверждение организатора появится отдельно в личном кабинете." if created else "Вы уже зарегистрированы.")
             if created:
                 send_to_user(request.user, f"Заявка принята системой OlympIQ: {olympiad.title}. Дата: {timezone.localtime(olympiad.starts_at).strftime('%d.%m.%Y %H:%M')}.")
         except (IntegrityError, ValueError) as error:

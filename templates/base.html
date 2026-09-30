@@ -1,35 +1,40 @@
-{% load static %}
+{% load static i18n ux %}{% get_current_language as current_language %}
 <!doctype html>
-<html lang="ru">
+<html lang="{{ current_language }}" data-theme="light">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}OlimpIQ{% endblock %}</title>
+  <script>try{let t=localStorage.getItem('olympiq-theme')||'light';document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):(t==='dark'?'dark':'light')}catch(e){}</script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  <script src="{% static 'js/preferences.js' %}" defer></script>
 </head>
 <body>
-  <nav class="nav container">
+  <nav class="nav container" aria-label="{% tr 'Главная навигация' %}">
     <a class="brand" href="{% url 'home' %}"><span>O</span> OlimpIQ</a>
     <div class="nav-links">
-      <a href="{% url 'olympiad_list' %}">Олимпиады</a>
-      <a href="{% url 'calendar' %}">Календарь</a>
-      {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">Личный кабинет</a><a href="{% url 'profile' %}">Профиль</a>{% endif %}
+      <a href="{% url 'olympiad_list' %}">{% tr 'Олимпиады' %}</a>
+      <a href="{% url 'calendar' %}">{% tr 'Календарь' %}</a>
+      <a href="{% url 'home' %}#quick-start">{% tr 'Как участвовать' %}</a>
+      {% if user.is_authenticated %}<a href="{% url 'dashboard' %}">{% tr 'Личный кабинет' %}</a><a href="{% url 'profile' %}">{% tr 'Профиль' %}</a>{% endif %}
+      {% if user.is_staff %}<a href="/admin/">{% tr 'Управление' %}</a>{% endif %}
     </div>
     <div class="nav-actions">
-      {% if user.is_authenticated %}
-        <span class="muted hide-mobile">{{ user.full_name }}</span>
-        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost">Выйти</button></form>
-      {% else %}
-        <a class="btn btn-ghost" href="{% url 'login' %}">Войти</a>
-        <a class="btn btn-primary" href="{% url 'signup' %}">Регистрация</a>
-      {% endif %}
+      {% if user.is_authenticated %}<form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="btn btn-ghost">{% tr 'Выйти' %}</button></form>
+      {% else %}<a class="btn btn-ghost" href="{% url 'login' %}">{% tr 'Войти' %}</a><a class="btn btn-primary" href="{% url 'signup' %}">{% tr 'Регистрация' %}</a>{% endif %}
     </div>
   </nav>
-  {% if messages %}<div class="container messages">{% for message in messages %}<div class="message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  <div class="preferences container">
+    <form method="post" action="{% url 'set_language' %}" class="language-form">{% csrf_token %}<input name="next" type="hidden" value="{{ request.get_full_path }}">
+      <label for="language-choice">{% tr 'Язык' %}</label><select id="language-choice" name="language"><option value="ru" {% if current_language == 'ru' %}selected{% endif %}>Русский</option><option value="kk" {% if current_language == 'kk' %}selected{% endif %}>Қазақша</option><option value="en" {% if current_language == 'en' %}selected{% endif %}>English</option></select><button type="submit" class="btn btn-ghost">{% tr 'Применить' %}</button>
+    </form>
+    <label for="theme-choice">{% tr 'Тема' %}</label><select id="theme-choice"><option value="light">{% tr 'Светлая' %}</option><option value="dark">{% tr 'Тёмная' %}</option><option value="system">{% tr 'Как на устройстве' %}</option></select>
+  </div>
+  {% if messages %}<div class="container messages" role="status">{% for message in messages %}<div class="message {{ message.tags }}">{{ message|tr }}</div>{% endfor %}</div>{% endif %}
   <main>{% block content %}{% endblock %}{% include 'core/_telegram_card.html' %}</main>
-  <footer><div class="container footer-grid"><div><div class="brand light"><span>O</span> OlimpIQ</div><p>Единое пространство школьных олимпиад Казахстана.</p></div><div><b>Платформа</b><a href="{% url 'olympiad_list' %}">Каталог олимпиад</a><a href="{% url 'dashboard' %}">Личный кабинет</a></div><div><b>Поддержка</b><a href="mailto:support@olimpiq.kz">support@olimpiq.kz</a><span>Астана, Казахстан</span></div></div></footer>
+  <footer><div class="container footer-grid"><div><div class="brand light"><span>O</span> OlimpIQ</div><p>{% tr 'Единое пространство школьных олимпиад Казахстана.' %}</p></div><div><b>{% tr 'Платформа' %}</b><a href="{% url 'olympiad_list' %}">{% tr 'Каталог олимпиад' %}</a><a href="{% url 'home' %}#quick-start">{% tr 'Как участвовать' %}</a></div><div><b>{% tr 'Ваш аккаунт' %}</b><a href="{% url 'dashboard' %}">{% tr 'Личный кабинет' %}</a><a href="{% url 'profile' %}">{% tr 'Профиль' %}</a><span>{% tr 'Астана, Казахстан' %}</span></div></div></footer>
 </body>
 </html>

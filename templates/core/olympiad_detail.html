@@ -1,43 +1,43 @@
-{% extends 'base.html' %}
+{% extends 'base.html' %}{% load ux %}
 {% block title %}{{ olympiad.title }} — OlimpIQ{% endblock %}
 {% block content %}
-<section class="page-hero"><div class="container detail-hero">
-  <div><span class="tag">{{ olympiad.get_event_type_display }} · {{ olympiad.subject }}</span>{% if olympiad.is_demo %}<span class="status demo-badge">Демонстрационный пример — не официальное событие</span>{% endif %}<h1>{{ olympiad.title }}</h1><p>{{ olympiad.organizer }} · {{ olympiad.get_level_display|default:'Уровень не указан' }}</p></div>
-  <div>
-    {% if registration %}<span class="pill success">✓ {{ registration.get_status_display }}</span>
-    {% elif olympiad.registration_url %}<a class="btn btn-primary btn-lg" href="{{ olympiad.registration_url }}" target="_blank" rel="noopener">Регистрация у организатора ↗</a>
-    {% elif user.is_authenticated and user.role == 'student' and olympiad.registration_open %}
-      {% if not user.school_id or not user.grade %}
-        <p>Для подачи заявки укажите школу и класс в профиле.</p>
-        <a class="btn btn-primary btn-lg" href="{% url 'profile' %}">Заполнить профиль</a>
-      {% elif user.grade < olympiad.min_grade or user.grade > olympiad.max_grade %}
-        <p>Эта олимпиада для {{ olympiad.min_grade }}–{{ olympiad.max_grade }} классов. Ваш класс: {{ user.grade }}.</p>
-        <a class="btn btn-primary btn-lg" href="{% url 'olympiad_list' %}?grade={{ user.grade }}&open=1">Найти подходящую олимпиаду</a>
-      {% else %}
-        <p>Заявка от {{ user.full_name }} · {{ user.grade }} класс</p>
-        <form method="post" action="{% url 'register_self' olympiad.pk %}">{% csrf_token %}<button class="btn btn-primary btn-lg">Подать заявку</button></form>
-      {% endif %}
-    {% elif not user.is_authenticated and olympiad.registration_open %}<a class="btn btn-primary btn-lg" href="{% url 'login' %}?next={{ request.path }}">Войти для регистрации</a>
-    {% elif user.role == 'teacher' and olympiad.registration_open %}<a class="btn btn-primary btn-lg" href="{% url 'teacher_register' olympiad.pk %}">Выбрать учеников</a>
-    {% else %}<span class="status">Регистрация закрыта</span>{% endif %}
-  </div>
-</div></section>
+<section class="page-hero"><div class="container"><a class="back-link" href="{% url 'olympiad_list' %}">← {% tr 'Каталог олимпиад' %}</a><div class="detail-hero"><div><span class="tag">{{ olympiad.get_event_type_display|tr }} · {{ olympiad.subject|tr }}</span>{% if olympiad.is_demo %}<span class="status demo-badge">{% tr 'Демонстрационный пример — не официальное событие' %}</span>{% endif %}<h1>{{ olympiad.title }}</h1><p>{{ olympiad.organizer|tr }} · {{ olympiad.get_level_display|tr }}</p></div></div></div></section>
 <section class="section container detail-layout">
-  <article class="content-card"><h2>Об олимпиаде</h2><p>{{ olympiad.description|linebreaks }}</p>
-    {% if olympiad.rules_url %}<p><a class="btn btn-ghost" href="{{ olympiad.rules_url }}" target="_blank" rel="noopener">Официальное положение ↗</a></p>{% endif %}
-    {% if olympiad.source_url %}<p class="source-note">Источник объявления: <a href="{{ olympiad.source_url }}" target="_blank" rel="noopener">РНПЦ «Дарын» ↗</a></p>{% endif %}
-    {% if results %}<h2>Ваш опубликованный результат</h2><div class="result-highlight"><strong>{{ results.0.score }} / {{ results.0.max_score }}</strong><span>Место: {{ results.0.place|default:'—' }} · {{ results.0.diploma|default:'Участие' }}</span></div>
-    {% elif registration %}<h2>Результат</h2><p class="muted">Организатор ещё не опубликовал ваш результат.</p>
-    {% endif %}
-  </article>
-  <aside class="info-card"><h3>Ключевая информация</h3><dl>
-    <dt>Дата и время</dt><dd>{% if olympiad.starts_at %}{{ olympiad.starts_at|date:'d.m.Y, H:i' }}{% else %}Уточняется{% endif %}</dd>
-    <dt>Регистрация до</dt><dd>{% if olympiad.registration_deadline %}{{ olympiad.registration_deadline|date:'d.m.Y, H:i' }}{% else %}Уточняется{% endif %}</dd>
-    <dt>Формат</dt><dd>{{ olympiad.get_format_display|default:'Уточняется' }}</dd>
-    <dt>Уровень</dt><dd>{{ olympiad.get_level_display|default:'Не указан' }}</dd>
-    <dt>Место</dt><dd>{{ olympiad.city|default:'Онлайн' }}{% if olympiad.venue %}, {{ olympiad.venue }}{% endif %}</dd>
-    <dt>Классы</dt><dd>{% if olympiad.min_grade and olympiad.max_grade %}{{ olympiad.min_grade }}–{{ olympiad.max_grade }}{% else %}Уточняются{% endif %}</dd>
-    <dt>Свободные места</dt><dd>{% if olympiad.places_left is None %}Без ограничений{% else %}{{ olympiad.places_left }}{% endif %}</dd>
-  </dl></aside>
-</section>
+<article class="content-card"><h2>{% tr 'Об олимпиаде' %}</h2>{{ olympiad.description|tr|linebreaks }}
+<h2>{% tr 'Условия и порядок участия' %}</h2>{% if olympiad.participation_details %}{{ olympiad.participation_details|tr|linebreaks }}{% else %}<p>{% tr 'Проверьте класс, формат и срок регистрации справа. Дополнительные условия уточняйте в официальном положении организатора.' %}</p>{% endif %}
+<h2>{% tr 'Темы и подготовка' %}</h2>{% if olympiad.preparation %}{{ olympiad.preparation|tr|linebreaks }}{% else %}<p>{% tr 'Программа подготовки пока не опубликована. Используйте официальное положение; не считайте общий список предметов программой соревнования.' %}</p>{% endif %}
+<h2>{% tr 'Оценивание и результаты' %}</h2>{% if olympiad.assessment %}{{ olympiad.assessment|tr|linebreaks }}{% else %}<p>{% tr 'Критерии и награды уточняются у организатора. Опубликованный результат появится в личном кабинете.' %}</p>{% endif %}
+{% if olympiad.rules_url %}<p><a class="btn btn-ghost" href="{{ olympiad.rules_url }}" target="_blank" rel="noopener">{% tr 'Официальное положение' %} ↗</a></p>{% endif %}
+{% if olympiad.source_url %}<p class="source-note">{% tr 'Источник объявления:' %} <a href="{{ olympiad.source_url }}" target="_blank" rel="noopener">{% tr 'Страница организатора' %} ↗</a></p>{% endif %}
+{% if results %}<h2>{% tr 'Ваш опубликованный результат' %}</h2><div class="result-highlight"><strong>{{ results.0.score }} / {{ results.0.max_score }}</strong><span>{% tr 'Место:' %} {{ results.0.place|default:'—' }} · {{ results.0.diploma }}</span></div>{% elif registration %}<h2>{% tr 'Результат' %}</h2><p class="muted">{% tr 'Организатор ещё не опубликовал ваш результат.' %}</p>{% endif %}
+<p class="source-note">{% tr 'Названия событий и пользовательские данные сохраняются на языке автора.' %}</p>
+</article>
+<aside class="info-card">
+<div class="application-box"><h2>{% tr 'Подача заявки' %}</h2>
+{% if registration %}<span class="pill {{ registration.status }}">{{ registration.get_status_display|tr }}</span>
+{% if registration.status == 'pending' %}<p>{% tr 'Заявка сохранена. Ничего больше отправлять не нужно: организатор проверит её отдельно. Срок подтверждения пока не указан.' %}</p>
+{% elif registration.status == 'approved' %}<p>{% tr 'Участие подтверждено. Проверьте дату и место проведения.' %}</p>
+{% else %}<p>{% tr 'Заявка отклонена. Уточните причину у организатора перед повторной подачей.' %}</p>{% endif %}
+<a class="btn btn-ghost full" href="{% url 'dashboard' %}">{% tr 'Проверить в личном кабинете' %}</a>
+{% elif olympiad.registration_url %}<p>{% tr 'Для этого события заявка подаётся на сайте организатора, а не в OlympIQ.' %}</p><a class="btn btn-primary full" href="{{ olympiad.registration_url }}" target="_blank" rel="noopener">{% tr 'Регистрация у организатора' %} ↗</a>
+{% elif user.is_authenticated and user.role == 'student' and olympiad.registration_open %}
+{% if not user.school_id or not user.grade %}<p>{% tr 'Для подачи заявки укажите школу и класс в профиле.' %}</p><a class="btn btn-primary full" href="{% url 'profile' %}">{% tr 'Заполнить профиль' %}</a>
+{% elif user.grade < olympiad.min_grade or user.grade > olympiad.max_grade %}<p>{% tr 'Эта олимпиада для' %} {{ olympiad.min_grade }}–{{ olympiad.max_grade }} {% tr 'классов.' %} {% tr 'Ваш класс:' %} {{ user.grade }}.</p><a class="btn btn-primary full" href="{% url 'olympiad_list' %}?grade={{ user.grade }}&open=1">{% tr 'Найти подходящую олимпиаду' %}</a>
+{% else %}<p>{% tr 'Заявка от' %} {{ user.full_name }} · {{ user.grade }} {% tr 'класс' %}</p><form method="post" action="{% url 'register_self' olympiad.pk %}" data-submit-once>{% csrf_token %}<button type="submit" class="btn btn-primary full" data-sending="{% tr 'Отправка…' %}">{% tr 'Подать заявку' %}</button></form><p class="muted">{% tr 'После отправки статус будет «На проверке». Это не ошибка и не зависание сайта.' %}</p>{% endif %}
+{% elif not user.is_authenticated and olympiad.registration_open %}<p>{% tr 'Войдите или создайте аккаунт ученика, затем вернитесь сюда и подайте заявку.' %}</p><a class="btn btn-primary full" href="{% url 'login' %}?next={{ request.path }}">{% tr 'Войти для регистрации' %}</a>
+{% elif user.role == 'teacher' and olympiad.registration_open %}<a class="btn btn-primary full" href="{% url 'teacher_register' olympiad.pk %}">{% tr 'Выбрать учеников' %}</a>
+{% elif user.is_staff %}<a class="btn btn-primary full" href="/admin/core/olympiad/{{ olympiad.pk }}/change/">{% tr 'Редактировать событие' %}</a>
+{% else %}<span class="status">{% tr 'Регистрация закрыта' %}</span>{% endif %}
+</div>
+<h3>{% tr 'Ключевая информация' %}</h3><dl>
+<dt>{% tr 'Дата и время' %}</dt><dd>{% if olympiad.starts_at %}{{ olympiad.starts_at|date:'d.m.Y, H:i' }}{% else %}{% tr 'Уточняется' %}{% endif %}</dd>
+{% if olympiad.ends_at %}<dt>{% tr 'Окончание' %}</dt><dd>{{ olympiad.ends_at|date:'d.m.Y, H:i' }}</dd>{% endif %}
+<dt>{% tr 'Часовой пояс' %}</dt><dd>{% tr 'Казахстан (UTC+5)' %}</dd>
+<dt>{% tr 'Регистрация до' %}</dt><dd>{% if olympiad.registration_deadline %}{{ olympiad.registration_deadline|date:'d.m.Y, H:i' }}{% else %}{% tr 'Уточняется' %}{% endif %}</dd>
+<dt>{% tr 'Формат' %}</dt><dd>{{ olympiad.get_format_display|tr }}</dd>
+<dt>{% tr 'Уровень' %}</dt><dd>{{ olympiad.get_level_display|tr }}</dd>
+<dt>{% tr 'Место' %}</dt><dd>{{ olympiad.city|default:olympiad.get_format_display|tr }}{% if olympiad.venue %}, {{ olympiad.venue|tr }}{% endif %}</dd>
+<dt>{% tr 'Классы' %}</dt><dd>{{ olympiad.min_grade }}–{{ olympiad.max_grade }}</dd>
+<dt>{% tr 'Свободные места' %}</dt><dd>{% if olympiad.places_left is None %}{% tr 'Без ограничений' %}{% else %}{{ olympiad.places_left }}{% endif %}</dd>
+</dl></aside></section>
 {% endblock %}

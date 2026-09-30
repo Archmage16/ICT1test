@@ -8,6 +8,7 @@ from django.db import transaction
 from django.test.utils import override_settings
 
 from core.models import Olympiad, School, User
+from core.demo_guides import enrich_demo_events
 
 
 class Command(BaseCommand):
@@ -40,6 +41,8 @@ class Command(BaseCommand):
             if created:
                 account.set_password("Demo12345!")
                 account.save(update_fields=["password"])
+        changed = enrich_demo_events()
+        call_command("bootstrap_admin", stdout=self.stdout)
         self.stdout.write(self.style.SUCCESS(
-            "UX demo ready: 24 sample events; student-only test accounts; staff login disabled."
+            f"UX demo ready; {changed} sample guides enriched; shared staff accounts disabled."
         ))
