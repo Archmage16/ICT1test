@@ -6,7 +6,17 @@
   <div>
     {% if registration %}<span class="pill success">✓ {{ registration.get_status_display }}</span>
     {% elif olympiad.registration_url %}<a class="btn btn-primary btn-lg" href="{{ olympiad.registration_url }}" target="_blank" rel="noopener">Регистрация у организатора ↗</a>
-    {% elif user.is_authenticated and user.role == 'student' and olympiad.registration_open %}<form method="post" action="{% url 'register_self' olympiad.pk %}">{% csrf_token %}<button class="btn btn-primary btn-lg">Подать заявку</button></form>
+    {% elif user.is_authenticated and user.role == 'student' and olympiad.registration_open %}
+      {% if not user.school_id or not user.grade %}
+        <p>Для подачи заявки укажите школу и класс в профиле.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'profile' %}">Заполнить профиль</a>
+      {% elif user.grade < olympiad.min_grade or user.grade > olympiad.max_grade %}
+        <p>Эта олимпиада для {{ olympiad.min_grade }}–{{ olympiad.max_grade }} классов. Ваш класс: {{ user.grade }}.</p>
+        <a class="btn btn-primary btn-lg" href="{% url 'olympiad_list' %}?grade={{ user.grade }}&open=1">Найти подходящую олимпиаду</a>
+      {% else %}
+        <p>Заявка от {{ user.full_name }} · {{ user.grade }} класс</p>
+        <form method="post" action="{% url 'register_self' olympiad.pk %}">{% csrf_token %}<button class="btn btn-primary btn-lg">Подать заявку</button></form>
+      {% endif %}
     {% elif not user.is_authenticated and olympiad.registration_open %}<a class="btn btn-primary btn-lg" href="{% url 'login' %}?next={{ request.path }}">Войти для регистрации</a>
     {% elif user.role == 'teacher' and olympiad.registration_open %}<a class="btn btn-primary btn-lg" href="{% url 'teacher_register' olympiad.pk %}">Выбрать учеников</a>
     {% else %}<span class="status">Регистрация закрыта</span>{% endif %}

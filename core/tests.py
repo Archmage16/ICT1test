@@ -1,9 +1,52 @@
 import json
+import os
+from io import StringIO
+from unittest.mock import patch
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 from .models import Olympiad, Registration, School, User
+
+
+class PublicUXDemoTests(TestCase):
+    def test_initializer_requires_explicit_sandbox_mode(self):
+        with patch.dict(os.environ, {"OLYMPIQ_UX_DEMO": "false"}):
+            with self.assertRaises(CommandError):
+                call_command("prepare_ux_demo", stdout=StringIO())
+        self.assertFalse(User.objects.exists())
+
+    def test_initializer_refuses_non_demo_database(self):
+        User.objects.create_user(username="real-account", password="unique-password")
+        with patch.dict(os.environ, {"OLYMPIQ_UX_DEMO": "true"}):
+            with self.assertRaises(CommandError):
+                call_command("prepare_ux_demo", stdout=StringIO())
+        self.assertEqual(User.objects.count(), 1)
+
+    def test_public_demo_is_student_only_and_repeatable(self):
+        with patch.dict(os.environ, {"OLYMPIQ_UX_DEMO": "true"}):
+            call_command("prepare_ux_demo", stdout=StringIO())
+            event = Olympiad.objects.get(source_key="demo:16")
+            student = User.objects.get(username="uxcheck")
+            Registration.objects.create(olympiad=event, student=student, registered_by=student)
+            starts_at = event.starts_at
+            call_command("prepare_ux_demo", stdout=StringIO())
+        self.assertEqual(Olympiad.objects.filter(is_demo=True).count(), 24)
+        self.assertEqual(Registration.objects.count(), 1)
+        event.refresh_from_db()
+        self.assertEqual(event.starts_at, starts_at)
+        for username in ("admin", "teacher"):
+            account = User.objects.get(username=username)
+            self.assertFalse(account.is_active)
+            self.assertFalse(account.has_usable_password())
+        for username in ("ux01", "ux02", "ux03", "uxcheck"):
+            account = User.objects.get(username=username)
+            self.assertEqual(account.role, User.Role.STUDENT)
+            self.assertEqual(account.grade, 9)
+            self.assertFalse(account.is_staff)
+            self.assertTrue(account.check_password("Demo12345!"))
 
 
 class PlatformFlowTests(TestCase):
@@ -32,6 +75,41 @@ class PlatformFlowTests(TestCase):
     def test_teacher_sees_registration_form(self):
         self.client.force_login(self.teacher)
         self.assertEqual(self.client.get(reverse("teacher_register", args=[self.olympiad.pk])).status_code, 200)
+
+    def test_missing_school_shows_profile_recovery_before_submission(self):
+        self.student.school = None
+        self.student.save(update_fields=["school"])
+        self.client.force_login(self.student)
+        response = self.client.get(self.olympiad.get_absolute_url())
+        self.assertContains(response, "Заполнить профиль")
+        self.assertNotContains(response, "Подать заявку</button>")
+        self.client.post(reverse("register_self", args=[self.olympiad.pk]))
+        self.assertFalse(Registration.objects.filter(student=self.student).exists())
+
+    def test_missing_grade_shows_profile_recovery_before_submission(self):
+        self.student.grade = None
+        self.student.save(update_fields=["grade"])
+        self.client.force_login(self.student)
+        response = self.client.get(self.olympiad.get_absolute_url())
+        self.assertContains(response, "Заполнить профиль")
+        self.assertNotContains(response, "Подать заявку</button>")
+
+    def test_ineligible_grade_shows_suitable_events_before_submission(self):
+        self.student.grade = 5
+        self.student.save(update_fields=["grade"])
+        self.client.force_login(self.student)
+        response = self.client.get(self.olympiad.get_absolute_url())
+        self.assertContains(response, "Ваш класс: 5")
+        self.assertContains(response, "Найти подходящую олимпиаду")
+        self.assertNotContains(response, "Подать заявку</button>")
+        self.client.post(reverse("register_self", args=[self.olympiad.pk]))
+        self.assertFalse(Registration.objects.filter(student=self.student).exists())
+
+    def test_eligible_student_keeps_registration_action(self):
+        self.client.force_login(self.student)
+        response = self.client.get(self.olympiad.get_absolute_url())
+        self.assertContains(response, "Подать заявку</button>")
+        self.assertContains(response, "Заявка от student")
 
     def test_unknown_grade_limits_keep_event_closed_without_crashing(self):
         self.olympiad.min_grade = None

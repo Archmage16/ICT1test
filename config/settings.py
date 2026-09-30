@@ -14,6 +14,9 @@ if not SECRET_KEY:
     SECRET_KEY = "local-development-only-not-for-deployment"
 default_hosts = "127.0.0.1,localhost,testserver" if DEBUG else ""
 ALLOWED_HOSTS = [host.strip() for host in os.environ.get("DJANGO_ALLOWED_HOSTS", default_hosts).split(",") if host.strip()]
+render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME", "")
+if render_hostname and render_hostname not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append(render_hostname)
 INSTALLED_APPS = [
     "django.contrib.admin",
     "django.contrib.auth",
