@@ -9,6 +9,8 @@ from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
 from .models import Olympiad, Registration, School, User
+from .forms import ProfileForm, SignUpForm
+from .contact_validation import EMAIL_DUPLICATE, EMAIL_ERROR, EMAIL_HELP, NAME_ERROR, NAME_HELP, PHONE_ERROR, PHONE_HELP
 from .demo_guides import enrich_demo_events
 from .ui_text import TEXT
 from pathlib import Path
@@ -202,11 +204,175 @@ class PlatformFlowTests(TestCase):
     def test_student_cannot_open_admin_or_edit_owner_permissions(self):
         self.client.force_login(self.student)
         self.assertEqual(self.client.get("/admin/").status_code, 302)
-        self.client.post(reverse("profile"), {"first_name": "Test", "last_name": "Student", "school": self.school.pk, "grade": 9, "role": "admin", "is_staff": "1", "is_superuser": "1"})
+        self.client.post(reverse("profile"), {"first_name": "Test", "last_name": "Student", "email": "student@example.com", "school": self.school.pk, "grade": 9, "role": "admin", "is_staff": "1", "is_superuser": "1"})
         self.student.refresh_from_db()
         self.assertEqual(self.student.role, User.Role.STUDENT)
         self.assertFalse(self.student.is_staff)
         self.assertFalse(self.student.is_superuser)
+
+
+@override_settings(STORAGES={"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}})
+class ContactValidationTests(TestCase):
+    def setUp(self):
+        self.school = School.objects.create(name="Contact test school", city="Астана")
+        self.student = User.objects.create_user(
+            username="contact_student", password="Test-contact-access-928!",
+            first_name="Иван", last_name="Петров", email="existing@example.com",
+            school=self.school, grade=9, phone="+77011234567",
+        )
+
+    def signup_data(self, **changes):
+        data = {
+            "first_name": "Әли", "last_name": "Омаров", "patronymic": "",
+            "username": "contact_new_student", "email": "new.student@example.com",
+            "school": self.school.pk, "grade": 9, "phone": "",
+            "password1": "Test-new-student-821!", "password2": "Test-new-student-821!",
+        }
+        data.update(changes)
+        return data
+
+    def profile_data(self, **changes):
+        data = {"first_name": "Иван", "last_name": "Петров", "patronymic": "", "email": self.student.email, "school": self.school.pk, "grade": 9, "phone": self.student.phone}
+        data.update(changes)
+        return data
+
+    def test_names_and_email_are_required_but_phone_and_patronymic_are_optional(self):
+        for form in (SignUpForm(self.signup_data(first_name="", last_name="", email="")), ProfileForm(self.profile_data(first_name="", last_name="", email=""), instance=self.student)):
+            self.assertFalse(form.is_valid())
+            for name in ("first_name", "last_name", "email"):
+                self.assertIn(name, form.errors)
+            self.assertNotIn("phone", form.errors)
+            self.assertNotIn("patronymic", form.errors)
+
+    def test_valid_multilingual_and_compound_names(self):
+        for name in ("Әли", "Қасым-Жомарт", "Anne Marie", "O’Neill", "José", "Jose\u0301", "李", "अर्जुन"):
+            with self.subTest(name=name):
+                form = SignUpForm(self.signup_data(first_name=name, last_name=name, patronymic=name))
+                self.assertTrue(form.is_valid(), form.errors)
+
+    def test_invalid_names_rejected_in_each_name_field(self):
+        for field in ("first_name", "last_name", "patronymic"):
+            for value in ("Ivan123", "123", "<script>", "@Ivan", "-Ivan", "Ivan-", "O''Neill", "Ivan\nPetrov", "Ivan\tPetrov", "Иван😀", "Иван\u200b"):
+                with self.subTest(field=field, value=value):
+                    form = SignUpForm(self.signup_data(**{field: value}))
+                    self.assertFalse(form.is_valid())
+                    self.assertIn(field, form.errors)
+
+    def test_name_spaces_and_unicode_are_normalized(self):
+        form = SignUpForm(self.signup_data(first_name="  Anne   Marie  ", last_name="O’Neill", patronymic="Jose\u0301"))
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["first_name"], "Anne Marie")
+        self.assertEqual(form.cleaned_data["last_name"], "O'Neill")
+        self.assertEqual(form.cleaned_data["patronymic"], "José")
+
+    def test_kazakhstan_and_international_phone_formats(self):
+        for value, expected in (
+            ("+7 701 123 45 67", "+77011234567"), ("8 (701) 123-45-67", "+77011234567"),
+            ("7 (701) 123-45-67", "+77011234567"), ("7011234567", "+77011234567"),
+            ("+44 20 8366 1177", "+442083661177"), ("+1 650 253 0000", "+16502530000"),
+            ("+7 (701) 123 - 45 - 67", "+77011234567"),
+        ):
+            with self.subTest(value=value):
+                form = SignUpForm(self.signup_data(phone=value))
+                self.assertTrue(form.is_valid(), form.errors)
+                self.assertEqual(form.cleaned_data["phone"], expected)
+
+    def test_invalid_phone_numbers_are_rejected(self):
+        for value in ("123", "00000000000", "+7 000 000 00 00", "+99912345678", "+770112345678999", "call +77011234567", "+77011234567 ext 4", "+7+7011234567", "+7701abc4567", "++77011234567", "８７０１１２３４５６７"):
+            with self.subTest(value=value):
+                form = SignUpForm(self.signup_data(phone=value))
+                self.assertFalse(form.is_valid())
+                self.assertIn("phone", form.errors)
+
+    def test_invalid_email_formats_are_rejected(self):
+        for value in ("not-an-email", "name@", "@example.com", "a b@example.com", "a..b@example.com", "student@localhost", "a@example", "a@example..com", "a@example.com\nb@example.com"):
+            with self.subTest(value=value):
+                form = SignUpForm(self.signup_data(email=value))
+                self.assertFalse(form.is_valid())
+                self.assertIn("email", form.errors)
+
+    def test_email_normalization_and_plus_addressing(self):
+        form = SignUpForm(self.signup_data(email="  New.Student+ux@Example.COM  "))
+        self.assertTrue(form.is_valid(), form.errors)
+        self.assertEqual(form.cleaned_data["email"], "new.student+ux@example.com")
+
+    def test_duplicate_email_is_case_insensitive(self):
+        form = SignUpForm(self.signup_data(email="  EXISTING@EXAMPLE.COM  "))
+        self.assertFalse(form.is_valid())
+        self.assertEqual(form.errors["email"], [EMAIL_DUPLICATE])
+
+    def test_profile_keeps_own_email_but_rejects_another_accounts_email(self):
+        User.objects.create_user(username="contact_other", email="another@example.com")
+        form = ProfileForm(self.profile_data(email="EXISTING@EXAMPLE.COM"), instance=self.student)
+        self.assertTrue(form.is_valid(), form.errors)
+        form = ProfileForm(self.profile_data(email="ANOTHER@example.com"), instance=self.student)
+        self.assertFalse(form.is_valid())
+        self.assertIn("email", form.errors)
+
+    def test_signup_saves_normalized_contacts(self):
+        response = self.client.post(reverse("signup"), self.signup_data(first_name="  Әли  ", email="NEW@EXAMPLE.COM", phone="8 (701) 123-45-67"))
+        self.assertRedirects(response, reverse("dashboard"))
+        user = User.objects.get(username="contact_new_student")
+        self.assertEqual((user.first_name, user.email, user.phone), ("Әли", "new@example.com", "+77011234567"))
+        self.assertFalse(user.is_staff or user.is_superuser)
+
+    def test_invalid_signup_post_cannot_bypass_browser_checks(self):
+        response = self.client.post(reverse("signup"), self.signup_data(first_name="Name123", phone="123", email="broken"))
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(User.objects.filter(username="contact_new_student").exists())
+        for field in ("first_name", "phone", "email"):
+            self.assertIn(field, response.context["form"].errors)
+
+    def test_profile_rejects_invalid_values_without_changing_saved_data(self):
+        self.client.force_login(self.student)
+        response = self.client.post(reverse("profile"), self.profile_data(first_name="Иван123", phone="000", email="bad"))
+        self.assertEqual(response.status_code, 200)
+        self.student.refresh_from_db()
+        self.assertEqual((self.student.first_name, self.student.email, self.student.phone), ("Иван", "existing@example.com", "+77011234567"))
+
+    def test_profile_saves_valid_normalized_values(self):
+        self.client.force_login(self.student)
+        response = self.client.post(reverse("profile"), self.profile_data(first_name="Қасым-Жомарт", email="EXISTING@EXAMPLE.COM", phone="+44 20 8366 1177"))
+        self.assertRedirects(response, reverse("dashboard"))
+        self.student.refresh_from_db()
+        self.assertEqual((self.student.first_name, self.student.email, self.student.phone), ("Қасым-Жомарт", "existing@example.com", "+442083661177"))
+
+    def test_teacher_profile_uses_same_contact_rules_without_school_and_grade(self):
+        self.student.role = User.Role.TEACHER
+        self.student.save(update_fields=["role"])
+        form = ProfileForm(self.profile_data(phone="123"), instance=self.student)
+        self.assertNotIn("school", form.fields)
+        self.assertNotIn("grade", form.fields)
+        self.assertFalse(form.is_valid())
+        self.assertIn("phone", form.errors)
+
+    def test_existing_incomplete_account_can_login_and_get_profile(self):
+        self.student.first_name = ""
+        self.student.email = ""
+        self.student.save(update_fields=["first_name", "email"])
+        self.assertTrue(self.client.login(username="contact_student", password="Test-contact-access-928!"))
+        self.assertEqual(self.client.get(reverse("profile")).status_code, 200)
+
+    def test_form_hints_and_invalid_message_are_translated_in_all_languages(self):
+        from django.utils.translation import override
+        for code in ("ru", "en", "kk"):
+            with override(code):
+                form = SignUpForm()
+                self.assertTrue(form.fields["first_name"].widget.attrs["data-invalid-message"])
+                if code != "ru":
+                    self.assertNotEqual(form.fields["first_name"].widget.attrs["data-invalid-message"], NAME_ERROR)
+        for message in (NAME_ERROR, PHONE_ERROR, EMAIL_ERROR, EMAIL_DUPLICATE, NAME_HELP, PHONE_HELP, EMAIL_HELP, "Укажите имя.", "Укажите фамилию.", "Укажите почту."):
+            self.assertIn(message, TEXT)
+            self.assertTrue(all(TEXT[message]))
+
+    def test_rendered_errors_are_linked_to_inputs_and_preserve_other_fields(self):
+        response = self.client.post(reverse("signup"), self.signup_data(first_name="Invalid123", phone="123"))
+        self.assertContains(response, 'id="id_first_name_error"')
+        self.assertContains(response, 'id="id_first_name_helptext"')
+        self.assertContains(response, 'aria-invalid="true"')
+        self.assertContains(response, 'value="Омаров"')
+        self.assertContains(response, "data-contact-validation")
+        self.assertContains(response, "js/contact-validation.js")
 
 
 class OwnerProvisioningTests(TestCase):

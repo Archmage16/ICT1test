@@ -27,6 +27,19 @@ review applications; public demo students cannot enter the admin panel.
 Do not upload real student information or reuse personal passwords in this public sandbox.
 Do not expose `.env`, the local SQLite database, or Telegram credentials.
 
+Public sign-up and profile forms now require first name, last name and email. Names accept
+Unicode letters plus spaces, hyphens and apostrophes; patronymic and phone remain optional.
+Phone input accepts Kazakhstan local/+7/8 formats and international numbers with a + country
+code, validates numbering-plan metadata with `phonenumberslite`, and stores E.164 format.
+Email format is validated and addresses already used by another account are rejected by
+these public forms without case sensitivity. Own-profile email is allowed. Existing accounts
+are not rewritten or prevented from signing in. These checks do not verify ownership or
+reachability of an email/phone; there is no verification email or SMS. No database migration
+is required; duplicate-email prevention is form-level, not a database uniqueness constraint.
+Native/browser hints and server errors are available in Russian, Kazakh and English.
+Tests cover normalisation, invalid direct POSTs, duplicate email, preserved profiles and
+multilingual names. Do not use real personal contact details for technical checks.
+
 Render Free limitations: the web service sleeps after 15 minutes of inactivity and
 may take about a minute to wake. Free PostgreSQL expires 30 days after creation.
 These limits make this a short-term coursework demo, not permanent production hosting.

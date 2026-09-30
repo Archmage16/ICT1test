@@ -1006,6 +1006,39 @@ TEXT = {
 }
 
 TEXT.update(DEMO_TEXT)
+TEXT.update({
+    "Укажите имя.": ["Enter your first name.", "Атыңызды енгізіңіз."],
+    "Укажите фамилию.": ["Enter your last name.", "Тегіңізді енгізіңіз."],
+    "Укажите почту.": ["Enter your email address.", "Электрондық поштаңызды енгізіңіз."],
+    "Используйте только буквы, пробелы, дефис или апостроф между частями имени.": [
+        "Use letters only, with spaces, hyphens or apostrophes between name parts.",
+        "Тек әріптерді қолданыңыз; есім бөліктерінің арасында бос орын, дефис немесе апостроф болуы мүмкін."
+    ],
+    "Введите корректный телефон: +7 701 123 45 67 или номер другой страны с кодом +.": [
+        "Enter a valid phone number: +7 701 123 45 67, or another country's number with a + country code.",
+        "Дұрыс телефон нөмірін енгізіңіз: +7 701 123 45 67 немесе + ел коды бар басқа елдің нөмірі."
+    ],
+    "Введите корректную почту, например student@example.com.": [
+        "Enter a valid email address, for example student@example.com.",
+        "Дұрыс электрондық пошта мекенжайын енгізіңіз, мысалы student@example.com."
+    ],
+    "Эта почта уже используется другим аккаунтом. Укажите другую или войдите в свой аккаунт.": [
+        "This email is already used by another account. Use another address or sign in to your account.",
+        "Бұл пошта басқа аккаунтта қолданылып тұр. Басқа мекенжайды енгізіңіз немесе өз аккаунтыңызға кіріңіз."
+    ],
+    "Буквы любого языка; допустимы пробел, дефис и апостроф. Без цифр.": [
+        "Letters in any language; spaces, hyphens and apostrophes are allowed. No digits.",
+        "Кез келген тілдің әріптері; бос орын, дефис және апостроф қолдануға болады. Цифрларсыз."
+    ],
+    "Необязательно. Казахстан: +7 701 123 45 67 или 8 701 123 45 67. Другие страны: с кодом +.": [
+        "Optional. Kazakhstan: +7 701 123 45 67 or 8 701 123 45 67. Other countries: include the + country code.",
+        "Міндетті емес. Қазақстан: +7 701 123 45 67 немесе 8 701 123 45 67. Басқа елдер: + ел кодымен."
+    ],
+    "Например student@example.com. Проверяется формат, а не принадлежность адреса.": [
+        "For example student@example.com. The format is checked, not ownership of the address.",
+        "Мысалы student@example.com. Мекенжайдың пішімі тексеріледі, иесі расталмайды."
+    ],
+})
 
 def translate(value):
     text = str(value or "")
