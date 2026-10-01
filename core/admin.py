@@ -1,4 +1,4 @@
-from django.contrib import admin
+from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from .models import News, Olympiad, Registration, Result, School, TelegramLink, TelegramReminder, User
 from .telegram import send_to_user
@@ -27,9 +27,10 @@ class RegistrationAdmin(admin.ModelAdmin):
     search_fields = ("student__last_name", "student__first_name", "olympiad__title")
     actions = ("approve",)
 
-    @admin.action(description="Подтвердить выбранные регистрации")
+    @admin.action(description="Подтвердить выбранные регистрации", permissions=["change"])
     def approve(self, request, queryset):
-        queryset.update(status=Registration.Status.APPROVED)
+        updated = queryset.update(status=Registration.Status.APPROVED)
+        self.message_user(request, f"Подтверждено заявок: {updated}.", messages.SUCCESS)
 
 
 admin.site.register(School)

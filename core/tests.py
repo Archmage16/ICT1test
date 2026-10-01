@@ -4,7 +4,8 @@ from io import StringIO
 from unittest.mock import patch
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import Client, TestCase, override_settings
+from django.test import Client, SimpleTestCase, TestCase, override_settings
+from django.contrib.auth.models import Permission
 from django.urls import reverse
 from django.utils import timezone
 from datetime import timedelta
@@ -429,3 +430,123 @@ class OwnerProvisioningTests(TestCase):
         event.refresh_from_db()
         self.assertEqual(event.description, "Official description")
         self.assertEqual(event.preparation, "")
+
+
+@override_settings(STORAGES={"default": {"BACKEND": "django.core.files.storage.FileSystemStorage"}, "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"}})
+class RegistrationApprovalTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_superuser(username="approval_owner", password="Test-approval-owner-782!", role=User.Role.ADMIN)
+        self.student = User.objects.create_user(username="approval_student", grade=9)
+        self.other_student = User.objects.create_user(username="approval_other", grade=9)
+        self.event = Olympiad.objects.create(title="Approval test", subject="Math", description="Test", organizer="School")
+        self.selected = Registration.objects.create(student=self.student, olympiad=self.event)
+        self.unselected = Registration.objects.create(student=self.other_student, olympiad=self.event)
+        self.url = reverse("admin:core_registration_changelist")
+        self.action = {"action": "approve", "index": "0", "select_across": "0", "_selected_action": [str(self.selected.pk)]}
+
+    def assert_pending(self):
+        self.selected.refresh_from_db()
+        self.unselected.refresh_from_db()
+        self.assertEqual(self.selected.status, Registration.Status.PENDING)
+        self.assertEqual(self.unselected.status, Registration.Status.PENDING)
+
+    def test_dashboard_links_directly_to_pending_applications_and_explains_approval(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, self.url + "?status__exact=pending")
+        self.assertContains(response, "Как подтвердить заявку ученика")
+        self.assertContains(response, "Подтвердить выбранные регистрации")
+        self.assertContains(response, "Заявки на проверке (2)")
+        self.assert_pending()
+
+    def test_owner_approves_only_selected_application_and_student_sees_status(self):
+        self.client.force_login(self.owner)
+        response = self.client.post(self.url, self.action, follow=True)
+        self.assertContains(response, "Подтверждено заявок: 1.")
+        self.selected.refresh_from_db()
+        self.unselected.refresh_from_db()
+        self.assertEqual(self.selected.status, Registration.Status.APPROVED)
+        self.assertEqual(self.unselected.status, Registration.Status.PENDING)
+        self.client.force_login(self.student)
+        response = self.client.get(reverse("dashboard"))
+        self.assertContains(response, 'class="pill approved"')
+        self.assertContains(response, "Подтверждена")
+        self.assertNotContains(response, "approval_other")
+
+    def test_get_requests_do_not_approve_anything(self):
+        self.client.force_login(self.owner)
+        self.client.get(self.url, self.action)
+        self.assert_pending()
+
+    def test_anonymous_and_student_cannot_approve(self):
+        self.assertEqual(self.client.post(self.url, self.action).status_code, 302)
+        self.client.force_login(self.student)
+        self.assertEqual(self.client.post(self.url, self.action).status_code, 302)
+        self.assert_pending()
+        self.assertNotContains(self.client.get(reverse("dashboard")), self.url)
+
+    def test_view_only_staff_cannot_use_approval_action(self):
+        viewer = User.objects.create_user(username="approval_viewer", is_staff=True)
+        viewer.user_permissions.add(Permission.objects.get(codename="view_registration"))
+        self.client.force_login(viewer)
+        self.assertNotContains(self.client.get(self.url), '<option value="approve"')
+        self.client.post(self.url, self.action)
+        self.assert_pending()
+
+    def test_admin_action_requires_csrf(self):
+        client = Client(enforce_csrf_checks=True)
+        client.force_login(self.owner)
+        self.assertEqual(client.post(self.url, self.action).status_code, 403)
+        self.assert_pending()
+
+
+class ThemeContrastTests(SimpleTestCase):
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
+        cls.css = (Path(__file__).resolve().parent.parent / "static/css/app.css").read_text(encoding="utf-8")
+        blocks = {"light": re.findall(r":root\s*\{([^}]+)\}", cls.css)[-1],
+                  "dark": re.findall(r"html\[data-theme=dark\]\s*\{([^}]+)\}", cls.css)[-1]}
+        cls.palettes = {theme: dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", block)) for theme, block in blocks.items()}
+
+    @staticmethod
+    def contrast(first, second):
+        def luminance(colour):
+            channels = [int(colour[i:i + 2], 16) / 255 for i in (1, 3, 5)]
+            linear = [c / 12.92 if c <= .04045 else ((c + .055) / 1.055) ** 2.4 for c in channels]
+            return sum(c * weight for c, weight in zip(linear, (.2126, .7152, .0722)))
+        light, dark = sorted((luminance(first), luminance(second)), reverse=True)
+        return (light + .05) / (dark + .05)
+
+    def test_body_secondary_and_primary_button_text_have_readable_contrast(self):
+        pairs = [("ink", "page"), ("ink", "surface"), ("muted", "surface"),
+                 ("muted", "hero-bg"), ("muted", "soft"), ("blue", "surface"),
+                 ("primary-ink", "blue"), ("primary-ink", "blue2"), ("selection-ink", "selection-bg")]
+        for theme, colours in self.palettes.items():
+            for text, background in pairs:
+                with self.subTest(theme=theme, text=text, background=background):
+                    self.assertGreaterEqual(self.contrast(colours[text], colours[background]), 4.5)
+
+    def test_status_and_error_text_have_readable_contrast(self):
+        for theme, colours in self.palettes.items():
+            for status in ("success", "pending", "error"):
+                with self.subTest(theme=theme, status=status):
+                    self.assertGreaterEqual(self.contrast(colours[status + "-ink"], colours[status + "-bg"]), 4.5)
+
+    def test_native_control_boundaries_remain_visible_in_both_themes(self):
+        for theme, colours in self.palettes.items():
+            with self.subTest(theme=theme):
+                self.assertGreaterEqual(self.contrast(colours["control-border"], colours["surface"]), 3)
+
+    def test_final_mobile_navigation_and_native_controls_use_theme_tokens(self):
+        last_nav = re.findall(r"\.nav-links a\s*\{([^}]+)\}", self.css)[-1]
+        self.assertIn("background:var(--surface)", last_nav)
+        self.assertIn("color:var(--ink)", last_nav)
+        self.assertIn(".nav-actions .btn-primary:hover{color:var(--primary-ink)}", self.css)
+        self.assertIn("select option,select optgroup{background:var(--surface);color:var(--ink)}", self.css)
+        self.assertIn("input::placeholder,textarea::placeholder{color:var(--muted);opacity:1}", self.css)
+        self.assertIn(".form-card ul.errorlist,.errorlist{color:var(--error-ink)}", self.css)
+
+    def test_narrow_calendar_places_actions_below_event_details(self):
+        self.assertIn(".agenda-item{display:grid;grid-template-columns:52px minmax(0,1fr)", self.css)
+        self.assertIn(".agenda-item>.btn,.agenda-item>.pill{grid-column:2;justify-self:start}", self.css)

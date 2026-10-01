@@ -1,2 +1,26 @@
-{% extends 'base.html' %}{% load ux %}{% block title %}{% tr "Панель администратора — OlimpIQ" %}{% endblock %}{% block content %}<section class="page-hero compact"><div class="container"><span class="eyebrow">{% tr "Управление платформой" %}</span><h1>{% tr "Панель администратора" %}</h1><p>{% tr "На проверке:" %} {{ pending_count }} {% tr "заявок" %}</p><div class="hero-actions"><a class="btn btn-primary" href="/admin/">{% tr "Открыть админ-панель" %}</a><a class="btn btn-white" href="{% url 'export_registrations' %}">{% tr "Скачать регистрации CSV" %}</a></div></div></section><section class="section container"><h2>{% tr "Последние регистрации" %}</h2><div class="table-wrap"><table><tr><th>{% tr "Ученик" %}</th><th>{% tr "Олимпиада" %}</th><th>{% tr "Статус" %}</th><th>{% tr "Дата" %}</th></tr>{% for item in registrations %}<tr><td>{{ item.student.full_name }}</td><td>{{ item.olympiad.title }}</td><td><span class="pill {{ item.status }}">{{ item.get_status_display|tr }}</span></td><td>{{ item.created_at|date:'d.m.Y H:i' }}</td></tr>{% endfor %}</table></div></section>{% endblock %}
+{% extends 'base.html' %}{% load ux %}
+{% block title %}{% tr "Панель администратора — OlimpIQ" %}{% endblock %}
+{% block content %}
+<section class="page-hero compact"><div class="container">
+  <span class="eyebrow">{% tr "Управление платформой" %}</span><h1>{% tr "Панель администратора" %}</h1>
+  <p>{% tr "На проверке:" %} {{ pending_count }} {% tr "заявок" %}</p>
+  <div class="hero-actions admin-actions">
+    {% if user.is_staff %}<a class="btn btn-primary" href="{% url 'admin:core_registration_changelist' %}?status__exact=pending">{% tr "Заявки на проверке" %} ({{ pending_count }})</a><a class="btn btn-ghost" href="/admin/">{% tr "Открыть админ-панель" %}</a><a class="btn btn-white" href="{% url 'export_registrations' %}">{% tr "Скачать регистрации CSV" %}</a>{% endif %}
+  </div>
+</div></section>
+<section class="section container">
+  {% if user.is_staff %}<div class="quick-start admin-guide">
+    <h2>{% tr "Как подтвердить заявку ученика" %}</h2>
+    <ol class="approval-steps">
+      <li>{% tr 'Откройте «Заявки на проверке» и отметьте нужных учеников галочками.' %}</li>
+      <li>{% tr 'В списке «Действие» выберите «Подтвердить выбранные регистрации» и нажмите «Выполнить».' %}</li>
+      <li>{% tr 'Статус изменится на «Подтверждена» и появится в личном кабинете ученика.' %}</li>
+    </ol>
+    <p class="muted">{% tr 'Для отклонения откройте отдельную заявку, выберите статус «Отклонена» и нажмите «Сохранить».' %}</p>
+  </div>{% endif %}
+  <h2>{% tr "Последние регистрации" %}</h2>
+  <div class="table-wrap"><table><tr><th>{% tr "Ученик" %}</th><th>{% tr "Олимпиада" %}</th><th>{% tr "Статус" %}</th><th>{% tr "Дата" %}</th></tr>
+  {% for item in registrations %}<tr><td>{{ item.student.full_name }}</td><td>{{ item.olympiad.title }}</td><td><span class="pill {{ item.status }}">{{ item.get_status_display|tr }}</span></td><td>{{ item.created_at|date:'d.m.Y H:i' }}</td></tr>{% empty %}<tr><td colspan="4">{% tr "Заявок пока нет." %}</td></tr>{% endfor %}</table></div>
+</section>
+{% endblock %}
 

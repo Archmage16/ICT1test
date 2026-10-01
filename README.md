@@ -73,6 +73,12 @@ Set `DJANGO_DEBUG=false`, a unique `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, 
 
 ## Roles and data access
 
+### Review student applications
+
+Sign in with a staff account and open the dashboard. Select **Заявки на проверке** to open `/admin/core/registration/?status__exact=pending`, tick the required applications, choose **Подтвердить выбранные регистрации**, and run the action. A success message confirms the number updated. Students see **Подтверждена** in their dashboard after refreshing. To reject an application, open its record, select **Отклонена**, and save. Approval requires the Django `change_registration` permission; a view-only staff account cannot approve. This updates the saved status, not an email/SMS notification.
+
+Appearance preferences apply to mobile navigation, native form controls, placeholders, errors and status badges. Both light and dark palettes have text-contrast regression checks; controls use theme-aware borders instead of mobile-only cream backgrounds.
+
 - Anonymous visitors see published olympiads and announcements.
 - Students see their own registrations and published results. Result scores are not exposed before publication or to other students.
 - Teachers can view registrations only for students associated with their school.
