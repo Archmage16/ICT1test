@@ -16,6 +16,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
 from .forms import ProfileForm, SignUpForm, TeacherRegistrationForm
 from .models import News, Olympiad, Registration, Result, TelegramLink, User
+from .ui_text import matching_sources, translate
 from .telegram import send_message, send_to_user, user_summary
 
 
@@ -68,7 +69,9 @@ def olympiad_list(request):
     grade_value = request.GET.get("grade", "")
     open_only = request.GET.get("open", "") == "1"
     if q:
-        qs = qs.filter(Q(title__icontains=q) | Q(organizer__icontains=q) | Q(city__icontains=q))
+        sources = matching_sources(q)
+        qs = qs.filter(Q(title__icontains=q) | Q(organizer__icontains=q) | Q(city__icontains=q)
+                       | Q(title__in=sources) | Q(organizer__in=sources) | Q(city__in=sources))
     if subject:
         qs = qs.filter(subject=subject)
     if olympiad_format in Olympiad.Format.values:
@@ -345,7 +348,7 @@ def teacher_register(request, pk):
                             new_students.append(student)
                 for student in new_students:
                     send_to_user(student, f"Учитель зарегистрировал вас на олимпиаду «{olympiad.title}». Начало: {timezone.localtime(olympiad.starts_at).strftime('%d.%m.%Y %H:%M')}.")
-                messages.success(request, f"Создано заявок: {created} из {len(eligible)}.")
+                messages.success(request, translate("Создано заявок: {count} из {total}.").format(count=created, total=len(eligible)))
                 return redirect("dashboard")
     return render(request, "core/teacher_register.html", {"form": form, "olympiad": olympiad})
 
@@ -356,7 +359,7 @@ def export_registrations(request):
     response["Content-Disposition"] = 'attachment; filename="registrations.csv"'
     response.write("\ufeff")
     writer = csv.writer(response)
-    writer.writerow(["Олимпиада", "ФИО", "Школа", "Класс", "Статус", "Дата заявки"])
+    writer.writerow([translate(label) for label in ["Олимпиада", "ФИО", "Школа", "Класс", "Статус", "Дата заявки"]])
     for item in Registration.objects.select_related("student__school", "olympiad"):
-        writer.writerow([csv_safe(item.olympiad.title), csv_safe(item.student.full_name), csv_safe(item.student.school or ""), csv_safe(item.student.grade or ""), csv_safe(item.get_status_display()), item.created_at.strftime("%d.%m.%Y %H:%M")])
+        writer.writerow([csv_safe(translate(item.olympiad.title)), csv_safe(item.student.full_name), csv_safe(item.student.school or ""), csv_safe(item.student.grade or ""), csv_safe(translate(item.get_status_display())), item.created_at.strftime("%d.%m.%Y %H:%M")])
     return response

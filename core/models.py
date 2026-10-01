@@ -2,34 +2,35 @@ from django.contrib.auth.models import AbstractUser
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
+from .ui_text import translate, translate_lazy as _
 
 
 class School(models.Model):
-    name = models.CharField("Название", max_length=220)
-    bin = models.CharField("БИН", max_length=12, blank=True)
-    city = models.CharField("Город", max_length=120)
-    address = models.CharField("Адрес", max_length=255, blank=True)
+    name = models.CharField(_("Название"), max_length=220)
+    bin = models.CharField(_("БИН"), max_length=12, blank=True)
+    city = models.CharField(_("Город"), max_length=120)
+    address = models.CharField(_("Адрес"), max_length=255, blank=True)
 
     class Meta:
         ordering = ["city", "name"]
-        verbose_name = "Школа"
-        verbose_name_plural = "Школы"
+        verbose_name = _("Школа")
+        verbose_name_plural = _("Школы")
 
     def __str__(self):
-        return f"{self.name}, {self.city}"
+        return f"{translate(self.name)}, {translate(self.city)}"
 
 
 class User(AbstractUser):
     class Role(models.TextChoices):
-        STUDENT = "student", "Ученик"
-        TEACHER = "teacher", "Учитель"
-        ADMIN = "admin", "Администратор"
+        STUDENT = "student", _("Ученик")
+        TEACHER = "teacher", _("Учитель")
+        ADMIN = "admin", _("Администратор")
 
-    role = models.CharField("Роль", max_length=12, choices=Role.choices, default=Role.STUDENT)
-    school = models.ForeignKey(School, on_delete=models.SET_NULL, null=True, blank=True, related_name="users")
-    grade = models.PositiveSmallIntegerField("Класс", null=True, blank=True)
-    phone = models.CharField("Телефон", max_length=20, blank=True)
-    patronymic = models.CharField("Отчество", max_length=120, blank=True)
+    role = models.CharField(_("Роль"), max_length=12, choices=Role.choices, default=Role.STUDENT)
+    school = models.ForeignKey(School, verbose_name=_("Школа"), on_delete=models.SET_NULL, null=True, blank=True, related_name="users")
+    grade = models.PositiveSmallIntegerField(_("Класс"), null=True, blank=True)
+    phone = models.CharField(_("Телефон"), max_length=20, blank=True)
+    patronymic = models.CharField(_("Отчество"), max_length=120, blank=True)
 
     @property
     def full_name(self):
@@ -38,54 +39,54 @@ class User(AbstractUser):
 
 class Olympiad(models.Model):
     class Format(models.TextChoices):
-        ONLINE = "online", "Онлайн"
-        OFFLINE = "offline", "Офлайн"
-        HYBRID = "hybrid", "Гибрид"
+        ONLINE = "online", _("Онлайн")
+        OFFLINE = "offline", _("Офлайн")
+        HYBRID = "hybrid", _("Гибрид")
 
     class EventType(models.TextChoices):
-        OLYMPIAD = "olympiad", "Олимпиада"
-        HACKATHON = "hackathon", "Хакатон"
-        CONTEST = "contest", "Конкурс"
-        QUIZ = "quiz", "Викторина"
-        OTHER = "other", "Другое"
+        OLYMPIAD = "olympiad", _("Олимпиада")
+        HACKATHON = "hackathon", _("Хакатон")
+        CONTEST = "contest", _("Конкурс")
+        QUIZ = "quiz", _("Викторина")
+        OTHER = "other", _("Другое")
 
-    title = models.CharField("Название", max_length=240)
-    event_type = models.CharField("Тип события", max_length=12, choices=EventType.choices, default=EventType.OLYMPIAD)
-    subject = models.CharField("Предмет", max_length=100)
-    description = models.TextField("Описание")
-    participation_details = models.TextField("Условия и порядок участия", blank=True)
-    preparation = models.TextField("Темы и подготовка", blank=True)
-    assessment = models.TextField("Оценивание и результаты", blank=True)
-    organizer = models.CharField("Организатор", max_length=180)
-    format = models.CharField("Формат", max_length=10, choices=Format.choices, blank=True, default="")
-    city = models.CharField("Город", max_length=120, blank=True)
-    venue = models.CharField("Место проведения", max_length=255, blank=True)
-    starts_at = models.DateTimeField("Дата и время начала", null=True, blank=True)
-    ends_at = models.DateTimeField("Дата и время окончания", null=True, blank=True)
-    registration_deadline = models.DateTimeField("Дедлайн регистрации", null=True, blank=True)
-    min_grade = models.PositiveSmallIntegerField("С класса", null=True, blank=True, default=5)
-    max_grade = models.PositiveSmallIntegerField("По класс", null=True, blank=True, default=11)
-    capacity = models.PositiveIntegerField("Количество мест (0 — без ограничений)", default=0)
-    level = models.CharField("Уровень", max_length=24, default="", blank=True, choices=[
-        ("school", "Школьный"), ("district", "Районный"), ("city", "Городской"),
-        ("regional", "Областной"), ("national", "Республиканский"), ("international", "Международный"),
+    title = models.CharField(_("Название"), max_length=240)
+    event_type = models.CharField(_("Тип события"), max_length=12, choices=EventType.choices, default=EventType.OLYMPIAD)
+    subject = models.CharField(_("Предмет"), max_length=100)
+    description = models.TextField(_("Описание"))
+    participation_details = models.TextField(_("Условия и порядок участия"), blank=True)
+    preparation = models.TextField(_("Темы и подготовка"), blank=True)
+    assessment = models.TextField(_("Оценивание и результаты"), blank=True)
+    organizer = models.CharField(_("Организатор"), max_length=180)
+    format = models.CharField(_("Формат"), max_length=10, choices=Format.choices, blank=True, default="")
+    city = models.CharField(_("Город"), max_length=120, blank=True)
+    venue = models.CharField(_("Место проведения"), max_length=255, blank=True)
+    starts_at = models.DateTimeField(_("Дата и время начала"), null=True, blank=True)
+    ends_at = models.DateTimeField(_("Дата и время окончания"), null=True, blank=True)
+    registration_deadline = models.DateTimeField(_("Дедлайн регистрации"), null=True, blank=True)
+    min_grade = models.PositiveSmallIntegerField(_("С класса"), null=True, blank=True, default=5)
+    max_grade = models.PositiveSmallIntegerField(_("По класс"), null=True, blank=True, default=11)
+    capacity = models.PositiveIntegerField(_("Количество мест (0 — без ограничений)"), default=0)
+    level = models.CharField(_("Уровень"), max_length=24, default="", blank=True, choices=[
+        ("school", _("Школьный")), ("district", _("Районный")), ("city", _("Городской")),
+        ("regional", _("Областной")), ("national", _("Республиканский")), ("international", _("Международный")),
     ])
-    rules_url = models.URLField("Ссылка на положение", blank=True)
-    source_key = models.CharField("Ключ записи источника", max_length=80, unique=True, null=True, blank=True)
-    source_url = models.URLField("Источник", blank=True)
-    registration_url = models.URLField("Ссылка для регистрации у организатора", blank=True)
-    source_synced_at = models.DateTimeField("Синхронизировано", null=True, blank=True)
-    is_demo = models.BooleanField("Демонстрационная запись", default=False)
-    is_published = models.BooleanField("Опубликовано", default=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    rules_url = models.URLField(_("Ссылка на положение"), blank=True)
+    source_key = models.CharField(_("Ключ записи источника"), max_length=80, unique=True, null=True, blank=True)
+    source_url = models.URLField(_("Источник"), blank=True)
+    registration_url = models.URLField(_("Ссылка для регистрации у организатора"), blank=True)
+    source_synced_at = models.DateTimeField(_("Синхронизировано"), null=True, blank=True)
+    is_demo = models.BooleanField(_("Демонстрационная запись"), default=False)
+    is_published = models.BooleanField(_("Опубликовано"), default=True)
+    created_at = models.DateTimeField(_("Дата создания"), auto_now_add=True)
 
     class Meta:
         ordering = ["starts_at"]
-        verbose_name = "Олимпиада"
-        verbose_name_plural = "Олимпиады"
+        verbose_name = _("Олимпиада")
+        verbose_name_plural = _("Олимпиады")
 
     def __str__(self):
-        return self.title
+        return translate(self.title)
 
     def clean(self):
         errors = {}
@@ -100,13 +101,13 @@ class Olympiad(models.Model):
             }
             for field, value in required_for_publication.items():
                 if not value:
-                    errors[field] = "Заполните это поле перед публикацией."
+                    errors[field] = _("Заполните это поле перед публикацией.")
         if self.starts_at and self.ends_at and self.ends_at <= self.starts_at:
-            errors["ends_at"] = "Дата окончания должна быть позже даты начала."
+            errors["ends_at"] = _("Дата окончания должна быть позже даты начала.")
         if self.registration_deadline and self.starts_at and self.registration_deadline > self.starts_at:
-            errors["registration_deadline"] = "Дедлайн регистрации должен наступить до олимпиады."
+            errors["registration_deadline"] = _("Дедлайн регистрации должен наступить до олимпиады.")
         if self.min_grade and self.max_grade and self.min_grade > self.max_grade:
-            errors["max_grade"] = "Старший класс не может быть меньше младшего."
+            errors["max_grade"] = _("Старший класс не может быть меньше младшего.")
         if errors:
             raise ValidationError(errors)
 
@@ -141,45 +142,45 @@ class Olympiad(models.Model):
 
 class Registration(models.Model):
     class Status(models.TextChoices):
-        PENDING = "pending", "На проверке"
-        APPROVED = "approved", "Подтверждена"
-        REJECTED = "rejected", "Отклонена"
+        PENDING = "pending", _("На проверке")
+        APPROVED = "approved", _("Подтверждена")
+        REJECTED = "rejected", _("Отклонена")
 
-    olympiad = models.ForeignKey(Olympiad, on_delete=models.CASCADE, related_name="registrations")
-    student = models.ForeignKey(User, on_delete=models.CASCADE, related_name="olympiad_registrations", limit_choices_to={"role": User.Role.STUDENT})
-    registered_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name="created_registrations")
-    status = models.CharField("Статус", max_length=12, choices=Status.choices, default=Status.PENDING)
-    created_at = models.DateTimeField(auto_now_add=True)
-    note = models.CharField("Комментарий", max_length=300, blank=True)
+    olympiad = models.ForeignKey(Olympiad, verbose_name=_("Олимпиада"), on_delete=models.CASCADE, related_name="registrations")
+    student = models.ForeignKey(User, verbose_name=_("Ученик"), on_delete=models.CASCADE, related_name="olympiad_registrations", limit_choices_to={"role": User.Role.STUDENT})
+    registered_by = models.ForeignKey(User, verbose_name=_("Зарегистрировал"), on_delete=models.SET_NULL, null=True, related_name="created_registrations")
+    status = models.CharField(_("Статус"), max_length=12, choices=Status.choices, default=Status.PENDING)
+    created_at = models.DateTimeField(_("Дата заявки"), auto_now_add=True)
+    note = models.CharField(_("Комментарий"), max_length=300, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["olympiad", "student"], name="unique_olympiad_student")]
         ordering = ["-created_at"]
-        verbose_name = "Регистрация"
-        verbose_name_plural = "Регистрации"
+        verbose_name = _("Регистрация")
+        verbose_name_plural = _("Регистрации")
 
     def __str__(self):
-        return f"{self.student.full_name} — {self.olympiad.title}"
+        return f"{self.student.full_name} — {translate(self.olympiad.title)}"
 
 
 class Result(models.Model):
-    registration = models.OneToOneField(Registration, on_delete=models.CASCADE, related_name="result")
-    score = models.DecimalField("Баллы", max_digits=7, decimal_places=2)
-    max_score = models.DecimalField("Максимум", max_digits=7, decimal_places=2, default=100)
-    place = models.PositiveIntegerField("Место", null=True, blank=True)
-    diploma = models.CharField("Награда", max_length=120, blank=True)
-    is_published = models.BooleanField("Опубликован", default=False)
-    published_at = models.DateTimeField(auto_now_add=True)
+    registration = models.OneToOneField(Registration, verbose_name=_("Регистрация на событие"), on_delete=models.CASCADE, related_name="result")
+    score = models.DecimalField(_("Баллы"), max_digits=7, decimal_places=2)
+    max_score = models.DecimalField(_("Максимум"), max_digits=7, decimal_places=2, default=100)
+    place = models.PositiveIntegerField(_("Место"), null=True, blank=True)
+    diploma = models.CharField(_("Награда"), max_length=120, blank=True)
+    is_published = models.BooleanField(_("Опубликован"), default=False)
+    published_at = models.DateTimeField(_("Дата публикации результата"), auto_now_add=True)
 
     class Meta:
         ordering = ["place", "-score"]
-        verbose_name = "Результат"
-        verbose_name_plural = "Результаты"
+        verbose_name = _("Результат")
+        verbose_name_plural = _("Результаты")
 
     def clean(self):
         if self.score is not None and self.max_score is not None:
             if self.score < 0 or self.max_score <= 0 or self.score > self.max_score:
-                raise ValidationError("Баллы должны быть от 0 до максимального балла.")
+                raise ValidationError(_("Баллы должны быть от 0 до максимального балла."))
 
 
 class TelegramLink(models.Model):
@@ -195,8 +196,8 @@ class TelegramLink(models.Model):
 
 class TelegramReminder(models.Model):
     class Kind(models.TextChoices):
-        DEADLINE = "deadline", "Дедлайн через сутки"
-        OLYMPIAD = "olympiad", "Олимпиада завтра"
+        DEADLINE = "deadline", _("Дедлайн через сутки")
+        OLYMPIAD = "olympiad", _("Олимпиада завтра")
 
     registration = models.ForeignKey(Registration, on_delete=models.CASCADE, related_name="telegram_reminders")
     kind = models.CharField(max_length=12, choices=Kind.choices)
@@ -204,20 +205,20 @@ class TelegramReminder(models.Model):
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=["registration", "kind"], name="unique_registration_telegram_reminder")]
-        verbose_name = "Отправленное напоминание"
-        verbose_name_plural = "Отправленные напоминания"
+        verbose_name = _("Отправленное напоминание")
+        verbose_name_plural = _("Отправленные напоминания")
 
 
 class News(models.Model):
-    title = models.CharField("Заголовок", max_length=220)
-    text = models.TextField("Текст")
-    published_at = models.DateTimeField("Дата публикации", auto_now_add=True)
-    is_published = models.BooleanField("Опубликовано", default=True)
+    title = models.CharField(_("Заголовок"), max_length=220)
+    text = models.TextField(_("Текст"))
+    published_at = models.DateTimeField(_("Дата публикации"), auto_now_add=True)
+    is_published = models.BooleanField(_("Опубликовано"), default=True)
 
     class Meta:
         ordering = ["-published_at"]
-        verbose_name = "Новость"
-        verbose_name_plural = "Новости"
+        verbose_name = _("Новость")
+        verbose_name_plural = _("Новости")
 
     def __str__(self):
-        return self.title
+        return translate(self.title)

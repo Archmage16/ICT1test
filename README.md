@@ -67,6 +67,12 @@ The demo command creates `admin`, `teacher`, and `student` accounts with a share
 
 Telegram is opt-in. Messages are sent only to a chat explicitly connected by the user; disabling or removing the bot stops delivery.
 
+## Interface languages
+
+Russian, English and Kazakh switch immediately from the language selector. The same choice persists on navigation, including filters and account pages. Event names, curated descriptions, preparation guides, locations, school display names and status labels use explicit display translations; original database values and personal names are preserved. Catalogue search accepts translated event names and cities, while filter values remain stable across languages.
+
+The supplemental Kazakh catalogue fills gaps in Django's authentication and form messages (including password hints and validation). Its editable source is `locale/kk/LC_MESSAGES/django.json`; after editing it, run `python manage.py compile_ui_messages` and commit the generated `django.mo` alongside the source. The compiled catalogue is included in the deployment and needs no external gettext installation. New free-form author content requires an explicit translation; it is not silently rewritten or sent to a translation service.
+
 ## Deployment configuration
 
 Set `DJANGO_DEBUG=false`, a unique `DJANGO_SECRET_KEY`, `DJANGO_ALLOWED_HOSTS`, and the `DB_*` values shown in `.env.example`. For PostgreSQL set `DB_ENGINE=django.db.backends.postgresql`. Run migrations and `collectstatic` during release. TLS termination must send `X-Forwarded-Proto: https`.

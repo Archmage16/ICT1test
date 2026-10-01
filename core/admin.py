@@ -2,12 +2,13 @@ from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin
 from .models import News, Olympiad, Registration, Result, School, TelegramLink, TelegramReminder, User
 from .telegram import send_to_user
+from .ui_text import translate, translate_lazy as _
 
 
 @admin.register(User)
 class CustomUserAdmin(UserAdmin):
-    fieldsets = UserAdmin.fieldsets + (("Профиль", {"fields": ("role", "school", "grade", "phone", "patronymic")}),)
-    add_fieldsets = UserAdmin.add_fieldsets + (("Профиль", {"fields": ("role", "school", "grade", "phone", "patronymic")}),)
+    fieldsets = UserAdmin.fieldsets + ((_('Профиль'), {"fields": ("role", "school", "grade", "phone", "patronymic")}),)
+    add_fieldsets = UserAdmin.add_fieldsets + ((_('Профиль'), {"fields": ("role", "school", "grade", "phone", "patronymic")}),)
     list_display = ("username", "last_name", "first_name", "role", "school", "is_staff")
     list_filter = ("role", "school", "is_staff")
 
@@ -27,10 +28,10 @@ class RegistrationAdmin(admin.ModelAdmin):
     search_fields = ("student__last_name", "student__first_name", "olympiad__title")
     actions = ("approve",)
 
-    @admin.action(description="Подтвердить выбранные регистрации", permissions=["change"])
+    @admin.action(description=_("Подтвердить выбранные регистрации"), permissions=["change"])
     def approve(self, request, queryset):
         updated = queryset.update(status=Registration.Status.APPROVED)
-        self.message_user(request, f"Подтверждено заявок: {updated}.", messages.SUCCESS)
+        self.message_user(request, translate("Подтверждено заявок: {count}.").format(count=updated), messages.SUCCESS)
 
 
 admin.site.register(School)
@@ -41,7 +42,7 @@ class ResultAdmin(admin.ModelAdmin):
     search_fields = ("registration__student__last_name", "registration__student__first_name", "registration__olympiad__title")
     actions = ("publish_results",)
 
-    @admin.action(description="Опубликовать выбранные результаты")
+    @admin.action(description=_("Опубликовать выбранные результаты"))
     def publish_results(self, request, queryset):
         for result in queryset.select_related("registration__student", "registration__olympiad"):
             result.is_published = True
@@ -51,5 +52,5 @@ class ResultAdmin(admin.ModelAdmin):
 admin.site.register(News)
 admin.site.register(TelegramLink)
 admin.site.register(TelegramReminder)
-admin.site.site_header = "OlimpIQ — управление платформой"
+admin.site.site_header = _("OlimpIQ — управление платформой")
 admin.site.site_title = "OlimpIQ"

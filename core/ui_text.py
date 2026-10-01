@@ -1,6 +1,8 @@
-"""Small explicit UI catalogue; original event names and free-form content are preserved."""
+"""Explicit display catalogue; stored source text and personal data stay unchanged."""
 from django.utils.translation import get_language
+from django.utils.functional import lazy
 from .demo_text import DEMO_TEXT
+from .event_text import EVENT_TEXT
 
 TEXT = {
   "Главная навигация": [
@@ -776,8 +778,8 @@ TEXT = {
     "Онлайн"
   ],
   "Офлайн": [
-    "In person",
-    "Офлайн"
+    "Offline (in person)",
+    "Офлайн (бетпе-бет)"
   ],
   "Гибрид": [
     "Hybrid",
@@ -1006,6 +1008,7 @@ TEXT = {
 }
 
 TEXT.update(DEMO_TEXT)
+TEXT.update(EVENT_TEXT)
 TEXT.update({
     "Заявки на проверке": ["Applications awaiting review", "Тексеруді күтіп тұрған өтінімдер"],
     "Как подтвердить заявку ученика": ["How to approve a student's application", "Оқушының өтінімін қалай растауға болады"],
@@ -1014,8 +1017,8 @@ TEXT.update({
         "«Тексеруді күтіп тұрған өтінімдер» бөлімін ашып, қажетті оқушыларды белгілеңіз."
     ],
     "В списке «Действие» выберите «Подтвердить выбранные регистрации» и нажмите «Выполнить».": [
-        "In the Action list, choose Подтвердить выбранные регистрации (Approve selected registrations) and click Go.",
-        "«Действие» тізімінен «Подтвердить выбранные регистрации» тармағын таңдап, «Выполнить» батырмасын басыңыз."
+        "In the Action list, choose Approve selected registrations and click Go.",
+        "«Әрекет» тізімінен «Таңдалған тіркелулерді растау» тармағын таңдап, «Орындау» батырмасын басыңыз."
     ],
     "Статус изменится на «Подтверждена» и появится в личном кабинете ученика.": [
         "The status will change to Approved and appear in the student's dashboard.",
@@ -1023,7 +1026,7 @@ TEXT.update({
     ],
     "Для отклонения откройте отдельную заявку, выберите статус «Отклонена» и нажмите «Сохранить».": [
         "To reject an application, open it, choose Rejected, and click Save.",
-        "Өтінімді қабылдамау үшін оны ашып, «Отклонена» мәртебесін таңдап, «Сохранить» батырмасын басыңыз."
+        "Өтінімді қабылдамау үшін оны ашып, «Қабылданбады» мәртебесін таңдап, «Сақтау» батырмасын басыңыз."
     ],
 })
 TEXT.update({
@@ -1060,6 +1063,59 @@ TEXT.update({
     ],
 })
 
+TEXT.update({
+    "Пользовательские данные сохраняются на языке автора.": ["User-entered data stays in its original language.", "Пайдаланушы енгізген деректер бастапқы тілінде сақталады."],
+    "Город": ["City", "Қала"], "Организатор": ["Organiser", "Ұйымдастырушы"],
+    "Астана": ["Astana", "Астана"], "Алматы": ["Almaty", "Алматы"],
+    "Караганда": ["Karaganda", "Қарағанды"], "Шымкент": ["Shymkent", "Шымкент"],
+    "Кызылорда": ["Kyzylorda", "Қызылорда"], "Тараз": ["Taraz", "Тараз"],
+    "Павлодар": ["Pavlodar", "Павлодар"], "Актобе": ["Aktobe", "Ақтөбе"],
+    "Костанай": ["Kostanay", "Қостанай"],
+    "Баллы": ["Score", "Балл"], "Новости": ["News", "Жаңалықтар"],
+    "Подтвердить выбранные регистрации": ["Approve selected registrations", "Таңдалған тіркелулерді растау"],
+    "Подтверждено заявок: {count}.": ["Applications approved: {count}.", "Расталған өтінімдер: {count}."],
+    "Создано заявок: {count} из {total}.": ["Applications created: {count} of {total}.", "Жасалған өтінімдер: {total} ішінен {count}."],
+    "Опубликовать выбранные результаты": ["Publish selected results", "Таңдалған нәтижелерді жариялау"],
+    "OlimpIQ — управление платформой": ["OlimpIQ — platform administration", "OlimpIQ — платформаны басқару"],
+    "Название": ["Name", "Атауы"], "БИН": ["Business identification number", "БСН"],
+    "Адрес": ["Address", "Мекенжай"], "Школы": ["Schools", "Мектептер"],
+    "Роль": ["Role", "Рөл"], "Ученик": ["Student", "Оқушы"], "Учитель": ["Teacher", "Мұғалім"],
+    "Администратор": ["Administrator", "Әкімші"], "Описание": ["Description", "Сипаттама"],
+    "Место проведения": ["Venue", "Өтетін орын"],
+    "Дата и время начала": ["Start date and time", "Басталу күні мен уақыты"],
+    "Дата и время окончания": ["End date and time", "Аяқталу күні мен уақыты"],
+    "Дедлайн регистрации": ["Registration deadline", "Тіркелудің соңғы мерзімі"],
+    "С класса": ["Minimum grade", "Ең төменгі сынып"], "По класс": ["Maximum grade", "Ең жоғарғы сынып"],
+    "Количество мест (0 — без ограничений)": ["Capacity (0 = unlimited)", "Орын саны (0 — шектеусіз)"],
+    "Ссылка на положение": ["Rules URL", "Ереже сілтемесі"],
+    "Ключ записи источника": ["Source record key", "Дереккөз жазбасының кілті"],
+    "Источник": ["Source", "Дереккөз"],
+    "Ссылка для регистрации у организатора": ["Organiser registration URL", "Ұйымдастырушыда тіркелу сілтемесі"],
+    "Синхронизировано": ["Synced at", "Синхрондалған уақыт"],
+    "Демонстрационная запись": ["Demo record", "Демонстрациялық жазба"],
+    "Опубликовано": ["Published", "Жарияланған"], "Опубликован": ["Published", "Жарияланған"],
+    "Регистрации": ["Registrations", "Тіркелулер"], "Результаты": ["Results", "Нәтижелер"],
+    "Максимум": ["Maximum score", "Ең жоғары балл"], "Награда": ["Award", "Марапат"],
+    "Заголовок": ["Headline", "Тақырып"], "Текст": ["Text", "Мәтін"],
+    "Дата публикации": ["Publication date", "Жарияланған күн"], "Новость": ["News item", "Жаңалық"],
+    "Отправленное напоминание": ["Sent reminder", "Жіберілген еске салу"],
+    "Отправленные напоминания": ["Sent reminders", "Жіберілген еске салулар"],
+    "Дедлайн через сутки": ["Deadline in one day", "Соңғы мерзімге бір күн қалды"],
+    "Олимпиада завтра": ["Olympiad tomorrow", "Олимпиада ертең"],
+    "Зарегистрировал": ["Registered by", "Тіркеген пайдаланушы"],
+    "Дата заявки": ["Application date", "Өтінім күні"], "ФИО": ["Full name", "Аты-жөні"],
+    "Дата создания": ["Created at", "Жасалған уақыт"], "Регистрация на событие": ["Event registration", "Іс-шараға тіркелу"],
+    "Дата публикации результата": ["Result publication date", "Нәтиже жарияланған күн"],
+    "В списке есть ученик не из вашей школы или неподходящего класса.": ["The selection includes a student from another school or an ineligible grade.", "Тізімде басқа мектептің оқушысы немесе сәйкес келмейтін сынып бар."],
+    "Регистрация закрылась или свободные места закончились.": ["Registration has closed or all places have been taken.", "Тіркелу жабылды немесе бос орындар аяқталды."],
+    "Возрастные условия события изменились. Обновите форму и выберите подходящих учеников.": ["The event's grade requirements have changed. Refresh the form and select eligible students.", "Іс-шараның сынып талаптары өзгерді. Форманы жаңартып, сәйкес оқушыларды таңдаңыз."],
+    "Заполните это поле перед публикацией.": ["Complete this field before publishing.", "Жариялау алдында осы өрісті толтырыңыз."],
+    "Дата окончания должна быть позже даты начала.": ["The end date must be after the start date.", "Аяқталу күні басталу күнінен кейін болуы керек."],
+    "Дедлайн регистрации должен наступить до олимпиады.": ["The registration deadline must precede the olympiad.", "Тіркелудің соңғы мерзімі олимпиадаға дейін болуы керек."],
+    "Старший класс не может быть меньше младшего.": ["The maximum grade cannot be below the minimum grade.", "Ең жоғарғы сынып ең төменгі сыныптан кіші болмауы керек."],
+    "Баллы должны быть от 0 до максимального балла.": ["The score must be between 0 and the maximum score.", "Балл 0 мен ең жоғары балл аралығында болуы керек."],
+})
+
 def translate(value):
     text = str(value or "")
     language = (get_language() or "ru").split("-")[0]
@@ -1067,3 +1123,13 @@ def translate(value):
         return text
     translated = TEXT.get(text)
     return translated[0 if language == "en" else 1] if translated else text
+
+
+translate_lazy = lazy(translate, str)
+
+
+def matching_sources(query):
+    """Map displayed search terms to original DB values in any supported language."""
+    needle = query.casefold()
+    return [source for source, variants in TEXT.items()
+            if any(needle in text.casefold() for text in (source, *variants))]

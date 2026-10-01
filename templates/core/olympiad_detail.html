@@ -1,7 +1,7 @@
 {% extends 'base.html' %}{% load ux %}
-{% block title %}{{ olympiad.title }} — OlimpIQ{% endblock %}
+{% block title %}{{ olympiad.title|tr }} — OlimpIQ{% endblock %}
 {% block content %}
-<section class="page-hero"><div class="container"><a class="back-link" href="{% url 'olympiad_list' %}">← {% tr 'Каталог олимпиад' %}</a><div class="detail-hero"><div><span class="tag">{{ olympiad.get_event_type_display|tr }} · {{ olympiad.subject|tr }}</span>{% if olympiad.is_demo %}<span class="status demo-badge">{% tr 'Демонстрационный пример — не официальное событие' %}</span>{% endif %}<h1>{{ olympiad.title }}</h1><p>{{ olympiad.organizer|tr }} · {{ olympiad.get_level_display|tr }}</p></div></div></div></section>
+<section class="page-hero"><div class="container"><a class="back-link" href="{% url 'olympiad_list' %}">← {% tr 'Каталог олимпиад' %}</a><div class="detail-hero"><div><span class="tag">{{ olympiad.get_event_type_display|tr }} · {{ olympiad.subject|tr }}</span>{% if olympiad.is_demo %}<span class="status demo-badge">{% tr 'Демонстрационный пример — не официальное событие' %}</span>{% endif %}<h1>{{ olympiad.title|tr }}</h1><p>{{ olympiad.organizer|tr }} · {{ olympiad.get_level_display|tr }}</p></div></div></div></section>
 <section class="section container detail-layout">
 <article class="content-card"><h2>{% tr 'Об олимпиаде' %}</h2>{{ olympiad.description|tr|linebreaks }}
 <h2>{% tr 'Условия и порядок участия' %}</h2>{% if olympiad.participation_details %}{{ olympiad.participation_details|tr|linebreaks }}{% else %}<p>{% tr 'Проверьте класс, формат и срок регистрации справа. Дополнительные условия уточняйте в официальном положении организатора.' %}</p>{% endif %}
@@ -9,8 +9,8 @@
 <h2>{% tr 'Оценивание и результаты' %}</h2>{% if olympiad.assessment %}{{ olympiad.assessment|tr|linebreaks }}{% else %}<p>{% tr 'Критерии и награды уточняются у организатора. Опубликованный результат появится в личном кабинете.' %}</p>{% endif %}
 {% if olympiad.rules_url %}<p><a class="btn btn-ghost" href="{{ olympiad.rules_url }}" target="_blank" rel="noopener">{% tr 'Официальное положение' %} ↗</a></p>{% endif %}
 {% if olympiad.source_url %}<p class="source-note">{% tr 'Источник объявления:' %} <a href="{{ olympiad.source_url }}" target="_blank" rel="noopener">{% tr 'Страница организатора' %} ↗</a></p>{% endif %}
-{% if results %}<h2>{% tr 'Ваш опубликованный результат' %}</h2><div class="result-highlight"><strong>{{ results.0.score }} / {{ results.0.max_score }}</strong><span>{% tr 'Место:' %} {{ results.0.place|default:'—' }} · {{ results.0.diploma }}</span></div>{% elif registration %}<h2>{% tr 'Результат' %}</h2><p class="muted">{% tr 'Организатор ещё не опубликовал ваш результат.' %}</p>{% endif %}
-<p class="source-note">{% tr 'Названия событий и пользовательские данные сохраняются на языке автора.' %}</p>
+{% if results %}<h2>{% tr 'Ваш опубликованный результат' %}</h2><div class="result-highlight"><strong>{{ results.0.score }} / {{ results.0.max_score }}</strong><span>{% tr 'Место:' %} {{ results.0.place|default:'—' }} · {{ results.0.diploma|tr }}</span></div>{% elif registration %}<h2>{% tr 'Результат' %}</h2><p class="muted">{% tr 'Организатор ещё не опубликовал ваш результат.' %}</p>{% endif %}
+<p class="source-note">{% tr 'Пользовательские данные сохраняются на языке автора.' %}</p>
 </article>
 <aside class="info-card">
 <div class="application-box"><h2>{% tr 'Подача заявки' %}</h2>

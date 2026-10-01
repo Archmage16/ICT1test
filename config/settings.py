@@ -73,6 +73,7 @@ AUTH_PASSWORD_VALIDATORS = [
 ]
 LANGUAGE_CODE = "ru"
 LANGUAGES = [("ru", "Русский"), ("kk", "Қазақша"), ("en", "English")]
+LOCALE_PATHS = [BASE_DIR / "locale"]
 LANGUAGE_COOKIE_NAME = "olympiq_language"
 LANGUAGE_COOKIE_SAMESITE = "Lax"
 LANGUAGE_COOKIE_SECURE = not DEBUG

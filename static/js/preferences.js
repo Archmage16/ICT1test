@@ -1,4 +1,10 @@
 (() => {
+  const language = document.querySelector('#language-choice');
+  if (language) {
+    language.addEventListener('change', () => language.form.requestSubmit());
+    // Keep a usable submit button when JavaScript is disabled.
+    language.form.querySelector('button[type="submit"]').remove();
+  }
   const control = document.querySelector('#theme-choice');
   if (!control) return;
   let preference = 'light';
